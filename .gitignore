@@ -25,4 +25,4 @@ dist-ssr
 
 #Secret
 .env
-
+.gitignore
