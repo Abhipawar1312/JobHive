@@ -1,9 +1,11 @@
+import mongoose from "mongoose";
 import { Job } from "../models/job.model.js"
 
 //admin
 export const postJob = async (req, res) => {
     try {
         const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
+        console.log(title, description, requirements, salary, location, jobType, experience, position, companyId)
         const userId = req.id;
         if (!title || !description || !requirements || !salary || !location || !jobType || !experience || !position || !companyId) {
             return res.status(400).json({
@@ -84,6 +86,37 @@ export const getJobById = async (req, res) => {
     }
 }
 
+export const getAdminJobById = async (req, res) => {
+    try {
+        const adminId = req.id; // Extract admin's ID from the request (e.g., via authentication middleware)
+        const jobId = req.params.id;
+
+        // Find the job by ID and ensure it was created by the admin
+        const job = await Job.findOne({ _id: jobId, created_by: adminId }).populate({
+            path: "company",
+        });
+
+        if (!job) {
+            return res.status(404).json({
+                message: "Job Not Found or Unauthorized Access.",
+                success: false,
+            });
+        }
+
+        return res.status(200).json({
+            job,
+            success: true,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: "Internal Server Error.",
+            success: false,
+        });
+    }
+};
+
+
 //admin
 export const getAdminJobs = async (req, res) => {
     try {
@@ -106,3 +139,44 @@ export const getAdminJobs = async (req, res) => {
         console.log(error);
     }
 }
+
+export const updateJob = async (req, res) => {
+    try {
+        const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
+
+        // Transform companyId to ObjectId
+        const updateData = {
+            title,
+            description,
+            requirements,
+            salary,
+            location,
+            jobType,
+            experienceLevel: experience,
+            position,
+            company: companyId ? new mongoose.Types.ObjectId(companyId) : undefined
+        };
+
+        console.log(updateData);
+
+        const job = await Job.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+        if (!job) {
+            return res.status(404).json({
+                message: "Job Not Found.",
+                success: false,
+            });
+        }
+
+        return res.status(200).json({
+            message: "Job Information Updated.",
+            success: true,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Internal Server Error.",
+            success: false,
+        });
+    }
+};

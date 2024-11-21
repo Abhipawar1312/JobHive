@@ -65,6 +65,7 @@ const Navbar = () => {
               </>
             )}
           </ul>
+          <DarkMode />
           {!user ? (
             <div className="flex items-center gap-2">
               <Link to="/login">
@@ -124,7 +125,6 @@ const Navbar = () => {
               </PopoverContent>
             </Popover>
           )}
-          <DarkMode />
         </div>
       </div>
     </div>
