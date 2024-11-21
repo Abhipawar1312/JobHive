@@ -100,44 +100,44 @@ const JobDescription = () => {
         <div className="my-4">
           <h1 className="my-1 font-bold">
             Role:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.title}
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Location:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.location}
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Description:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.description}
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Experience:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.experience} yrs
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Salary:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.salary} LPA
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Total Applicants:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {" "}
               {singleJob?.applications?.length}
             </span>
           </h1>
           <h1 className="my-1 font-bold">
             Posted Date:{" "}
-            <span className="pl-4 font-normal text-gray-800">
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {" "}
               {singleJob?.createdAt.split("T")[0]}
             </span>

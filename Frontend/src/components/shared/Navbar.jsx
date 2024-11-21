@@ -10,6 +10,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { USER_API_END_POINT } from "@/utils/constant";
 import { setUser } from "../redux/authSlice";
+import DarkMode from "./DarkMode";
 
 const Navbar = () => {
   const { user } = useSelector((store) => store.auth);
@@ -32,7 +33,7 @@ const Navbar = () => {
     }
   };
   return (
-    <div className="bg-white">
+    <div>
       <div className="flex items-center justify-between h-16 mx-auto max-w-7xl">
         <div>
           <h1 className="text-2xl font-bold">
@@ -123,6 +124,7 @@ const Navbar = () => {
               </PopoverContent>
             </Popover>
           )}
+          <DarkMode />
         </div>
       </div>
     </div>

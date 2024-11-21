@@ -13,6 +13,7 @@ import AdminJobs from "./components/Admin/AdminJobs";
 import PostJobs from "./components/Admin/PostJobs";
 import Applicants from "./components/Admin/Applicants";
 import ProtectedRoute from "./components/Admin/ProtectedRoute";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 const appRouter = createBrowserRouter([
   {
@@ -99,7 +100,9 @@ const appRouter = createBrowserRouter([
 function App() {
   return (
     <>
-      <RouterProvider router={appRouter} />
+      <ThemeProvider>
+        <RouterProvider router={appRouter} />
+      </ThemeProvider>
     </>
   );
 }

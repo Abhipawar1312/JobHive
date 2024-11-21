@@ -30,7 +30,7 @@ const FilterCard = () => {
   }, [selectedValue]);
 
   return (
-    <div className="w-full p-3 bg-white rounded-md">
+    <div className="w-full p-3 rounded-md">
       <h1 className="text-lg font-bold">Filter Jobs</h1>
       <hr className="mt-3" />
       <RadioGroup value={selectedValue} onValueChange={changeHandler}>

@@ -41,7 +41,7 @@ const HeroSection = () => {
             type="text"
             placeholder={`${placeholder} 💻`}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full border-none outline-none"
+            className="w-full border-none outline-none dark:bg-[#020817]"
           />
           <Button
             onClick={searchJobHandler}

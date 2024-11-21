@@ -21,14 +21,11 @@ const Profile = () => {
   return (
     <div>
       <Navbar />
-      <div className="max-w-4xl p-8 mx-auto my-5 bg-white border border-gray-200 rounded-2xl">
+      <div className="max-w-4xl p-8 mx-auto my-5 border border-gray-200 rounded-2xl">
         <div className="flex justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="w-24 h-24">
-              <AvatarImage
-                src="https://imgs.search.brave.com/TIwdT0C8kfwx1urlntz9I_Op__QJhWp08Su5TVHCnXw/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTI5/OTgyODE0OC92ZWN0/b3IvZWxlY3RyaWMt/Y29tcGFueS1kZXNp/Z24tYmFkZ2UuanBn/P3M9NjEyeDYxMiZ3/PTAmaz0yMCZjPWJh/RWhETEswWEtER2Yz/MWFDQndmVnZEZHVk/XzJobENvNl9GSDhj/ZjFvRkk9"
-                alt="profile"
-              />
+              <AvatarImage src={user?.profile?.profilePhoto} alt="profile" />
             </Avatar>
             <div>
               <h1 className="text-xl font-medium">{user?.fullname}</h1>
@@ -80,7 +77,7 @@ const Profile = () => {
           )}
         </div>
       </div>
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl">
+      <div className="max-w-4xl mx-auto rounded-2xl">
         <h1 className="my-5 text-lg font-bold">Applied Jobs</h1>
         <AppliedJobTable />
       </div>
