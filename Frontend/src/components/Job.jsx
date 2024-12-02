@@ -15,7 +15,7 @@ const Job = ({ job }) => {
     return Math.floor(timeDifference / (1000 * 24 * 60 * 60));
   };
   return (
-    <div className="p-5 border border-gray-100 rounded-md shadow-xl ">
+    <div className="p-5 border border-gray-100 rounded-md h-[400px] shadow-xl flex flex-col">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500 dark:text-white">
           {daysAgoFunction(job?.createdAt) === 0
@@ -37,9 +37,9 @@ const Job = ({ job }) => {
           <p className="text-sm text-gray-500">{job?.location} </p>
         </div>
       </div>
-      <div>
+      <div className="flex-grow">
         <h1 className="my-2 text-lg font-bold">{job?.title} </h1>
-        <p className="text-sm text-gray-600 dark:text-white">
+        <p className="text-sm text-gray-600 line-clamp-5 dark:text-white">
           {job?.description}
         </p>
       </div>
