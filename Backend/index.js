@@ -36,5 +36,5 @@ app.use("/api/v1/application", applicationRoute);
 
 app.listen(PORT, () => {
     connectDB();
-    console.log(`Server running at port ${PORT}`);
+    // console.log(`Server running at port ${PORT}`);
 })

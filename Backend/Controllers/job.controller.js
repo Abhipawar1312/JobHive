@@ -5,7 +5,7 @@ import { Job } from "../models/job.model.js"
 export const postJob = async (req, res) => {
     try {
         const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
-        console.log(title, description, requirements, salary, location, jobType, experience, position, companyId)
+        // console.log(title, description, requirements, salary, location, jobType, experience, position, companyId)
         const userId = req.id;
         if (!title || !description || !requirements || !salary || !location || !jobType || !experience || !position || !companyId) {
             return res.status(400).json({
@@ -47,7 +47,7 @@ export const getAllJobs = async (req, res) => {
         const jobs = await Job.find(query).populate({
             path: "company"
         }).sort({ createdAt: -1 });
-        console.log(jobs);
+        // console.log(jobs);
         if (!jobs) {
             return res.status(404).json({
                 message: "Jobs Not Found",
@@ -157,7 +157,7 @@ export const updateJob = async (req, res) => {
             company: companyId ? new mongoose.Types.ObjectId(companyId) : undefined
         };
 
-        console.log(updateData);
+        // console.log(updateData);
 
         const job = await Job.findByIdAndUpdate(req.params.id, updateData, { new: true });
 

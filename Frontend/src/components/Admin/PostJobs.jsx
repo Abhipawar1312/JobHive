@@ -36,7 +36,7 @@ const PostJobs = () => {
   const { companies } = useSelector((store) => store.company);
 
   const isEditMode = Boolean(jobId);
-  console.log(isEditMode);
+  // console.log(isEditMode);
 
   // Fetch job details if in edit mode
   useEffect(() => {
@@ -53,9 +53,9 @@ const PostJobs = () => {
               withCredentials: true, // if you need to send cookies along with the request
             }
           );
-          console.log(res);
+          // console.log(res);
           if (res.data.success) {
-            console.log(res.data);
+            // console.log(res.data);
             setInput({
               ...input,
               title: res.data.job.title,
@@ -94,7 +94,7 @@ const PostJobs = () => {
     if (selectedCompany) {
       setInput({ ...input, companyId: selectedCompany._id });
     }
-    console.log("Selected Company ID:", selectedCompany?._id);
+    // console.log("Selected Company ID:", selectedCompany?._id);
   };
 
   const submitHandler = async (e) => {
@@ -111,7 +111,7 @@ const PostJobs = () => {
         },
         withCredentials: true,
       });
-      console.log(res.data);
+      // console.log(res.data);
       if (res.data.success) {
         toast.success(res.data.message);
         navigate("/admin/jobs");
