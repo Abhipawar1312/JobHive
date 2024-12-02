@@ -14,39 +14,19 @@ import PostJobs from "./components/Admin/PostJobs";
 import Applicants from "./components/Admin/Applicants";
 import ProtectedRoute from "./components/Admin/ProtectedRoute";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { StarsBackground } from "./components/StarsBackground";
+import { ShootingStars } from "./components/ShootingStars";
+import LoadingBarProvider from "./components/LoadingBarContext";
 
 const appRouter = createBrowserRouter([
-  {
-    path: "/",
-    element: <Home />,
-  },
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/signup",
-    element: <Signup />,
-  },
-  {
-    path: "/jobs",
-    element: <Jobs />,
-  },
-  {
-    path: "/description/:id",
-    element: <JobDescription />,
-  },
-  {
-    path: "/browse",
-    element: <Browse />,
-  },
-  {
-    path: "/profile",
-    element: <Profile />,
-  },
-
-  //admin
-
+  { path: "/", element: <Home /> },
+  { path: "/login", element: <Login /> },
+  { path: "/signup", element: <Signup /> },
+  { path: "/jobs", element: <Jobs /> },
+  { path: "/description/:id", element: <JobDescription /> },
+  { path: "/browse", element: <Browse /> },
+  { path: "/profile", element: <Profile /> },
+  // Admin routes
   {
     path: "/admin/companies",
     element: (
@@ -67,16 +47,15 @@ const appRouter = createBrowserRouter([
     path: "/admin/companies/:id",
     element: (
       <ProtectedRoute>
-        <CompanySetup />,
+        <CompanySetup />
       </ProtectedRoute>
     ),
   },
-
   {
     path: "/admin/jobs",
     element: (
       <ProtectedRoute>
-        <AdminJobs />,
+        <AdminJobs />
       </ProtectedRoute>
     ),
   },
@@ -84,7 +63,7 @@ const appRouter = createBrowserRouter([
     path: "/admin/jobs/create",
     element: (
       <ProtectedRoute>
-        <PostJobs />,
+        <PostJobs />
       </ProtectedRoute>
     ),
   },
@@ -92,7 +71,7 @@ const appRouter = createBrowserRouter([
     path: "/admin/jobs/create/:jobId",
     element: (
       <ProtectedRoute>
-        <PostJobs />,
+        <PostJobs />
       </ProtectedRoute>
     ),
   },
@@ -100,18 +79,39 @@ const appRouter = createBrowserRouter([
     path: "/admin/jobs/:id/applicants",
     element: (
       <ProtectedRoute>
-        <Applicants />,
+        <Applicants />
       </ProtectedRoute>
     ),
   },
 ]);
+
 function App() {
   return (
-    <>
+    <LoadingBarProvider>
       <ThemeProvider>
-        <RouterProvider router={appRouter} />
+        {/* Background Layer */}
+        <div className="fixed inset-0 overflow-hidden">
+          <StarsBackground
+            starDensity={0.0001}
+            allStarsTwinkle={true}
+            twinkleProbability={0.5}
+            className="z-0"
+          />
+          <ShootingStars
+            minSpeed={10}
+            maxSpeed={30}
+            starColor="#FFD700"
+            trailColor="#FF4500"
+            className="z-0"
+          />
+        </div>
+
+        {/* Content Layer */}
+        <div className="relative z-10 min-h-screen">
+          <RouterProvider router={appRouter} />
+        </div>
       </ThemeProvider>
-    </>
+    </LoadingBarProvider>
   );
 }
 

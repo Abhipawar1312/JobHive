@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading } from "../redux/authSlice";
 import { Loader2 } from "lucide-react";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const Signup = () => {
   const [input, setInput] = useState({
@@ -22,6 +23,7 @@ const Signup = () => {
     file: "",
   });
   const { loading, user } = useSelector((store) => store.auth);
+  const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const changeEventHandler = (e) => {
@@ -45,6 +47,7 @@ const Signup = () => {
     }
 
     try {
+      loadingBarRef.current.continuousStart();
       dispatch(setLoading(true));
       const res = await axios.post(`${USER_API_END_POINT}/register`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -58,6 +61,7 @@ const Signup = () => {
       console.log(error);
       toast.error(error.response.data.message);
     } finally {
+      loadingBarRef.current.complete();
       dispatch(setLoading(false));
     }
   };

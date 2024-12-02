@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setSearchedQuery } from "./redux/jobSlice";
+import { LoadingBarContext } from "./LoadingBarContext";
 const category = [
   "Frontend Developer",
   "Backend Developer",
@@ -20,9 +21,12 @@ const category = [
 const CategoryCarousel = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const loadingBarRef = useContext(LoadingBarContext);
   const searchJobHandler = (query) => {
+    loadingBarRef.current.continuousStart();
     dispatch(setSearchedQuery(query));
     navigate("/browse");
+    loadingBarRef.current.complete();
   };
   return (
     <div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -11,6 +11,7 @@ import { USER_API_END_POINT } from "@/utils/constant";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setUser } from "../redux/authSlice";
 import { Loader2 } from "lucide-react";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const Login = () => {
   const [input, setInput] = useState({
@@ -19,6 +20,7 @@ const Login = () => {
     role: "",
   });
   const { loading, user } = useSelector((store) => store.auth);
+  const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const changeEventHandler = (e) => {
@@ -32,6 +34,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
+      loadingBarRef.current.continuousStart();
       dispatch(setLoading(true));
       const res = await axios.post(`${USER_API_END_POINT}/login`, input, {
         headers: {
@@ -48,6 +51,7 @@ const Login = () => {
       console.log(error);
       toast.error(error.response.data.message);
     } finally {
+      loadingBarRef.current.complete();
       dispatch(setLoading(false));
     }
   };

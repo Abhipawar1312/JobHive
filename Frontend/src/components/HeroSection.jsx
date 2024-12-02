@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Button } from "./ui/button";
 import { Search } from "lucide-react";
 import { useTypewriter, Cursor } from "react-simple-typewriter";
 import { useDispatch } from "react-redux";
 import { setSearchedQuery } from "./redux/jobSlice";
 import { useNavigate } from "react-router-dom";
+import { LoadingBarContext } from "./LoadingBarContext";
 
 const HeroSection = () => {
   const [placeholder] = useTypewriter({
@@ -15,10 +16,14 @@ const HeroSection = () => {
   });
 
   const [query, setQuery] = useState("");
+  const loadingBarRef = useContext(LoadingBarContext);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const searchJobHandler = () => {
+    loadingBarRef.current.continuousStart();
+    loadingBarRef.current.complete();
+    console.log(query);
     dispatch(setSearchedQuery(query));
     navigate("/browse");
   };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage } from "../ui/avatar";
@@ -11,14 +11,17 @@ import { toast } from "sonner";
 import { USER_API_END_POINT } from "@/utils/constant";
 import { setUser } from "../redux/authSlice";
 import DarkMode from "./DarkMode";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const Navbar = () => {
   const { user } = useSelector((store) => store.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const loadingBarRef = useContext(LoadingBarContext);
 
   const logoutHandler = async () => {
     try {
+      loadingBarRef.current.continuousStart();
       const res = await axios.get(`${USER_API_END_POINT}/logout`, {
         withCredentials: true,
       });
@@ -30,6 +33,8 @@ const Navbar = () => {
     } catch (error) {
       console.log(error);
       toast.error(error.response.data.message);
+    } finally {
+      loadingBarRef.current.complete();
     }
   };
   return (
