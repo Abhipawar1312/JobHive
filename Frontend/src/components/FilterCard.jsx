@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { useDispatch } from "react-redux";
 import { setSearchedQuery } from "./redux/jobSlice";
+import { LoadingBarContext } from "./LoadingBarContext";
+// import { LoadingBarContext } from "./LoadingBarContext";
 
 const filterData = [
   {
@@ -21,12 +23,15 @@ const filterData = [
 const FilterCard = () => {
   const [selectedValue, setSelectedValue] = useState("");
   const dispatch = useDispatch();
+  const loadingBarRef = useContext(LoadingBarContext);
   const changeHandler = (value) => {
     setSelectedValue(value);
   };
 
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
     dispatch(setSearchedQuery(selectedValue));
+    loadingBarRef.current.complete();
   }, [selectedValue]);
 
   return (

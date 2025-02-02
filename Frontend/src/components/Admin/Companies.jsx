@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -7,14 +7,18 @@ import { useNavigate } from "react-router-dom";
 import useGetAllCompanies from "@/Hooks/useGetAllCompanies";
 import { useDispatch } from "react-redux";
 import { setSearchCompanyByText } from "../redux/CompanySlice";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const Companies = () => {
   useGetAllCompanies();
   const [input, setInput] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const loadingBarRef = useContext(LoadingBarContext);
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
     dispatch(setSearchCompanyByText(input));
+    loadingBarRef.current.complete();
   }, [input]);
   return (
     <div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { useNavigate } from "react-router-dom";
@@ -9,13 +9,16 @@ import { COMPANY_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import { setSingleCompany } from "../redux/CompanySlice";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const CompanyCreate = () => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState();
   const dispatch = useDispatch();
+  const loadingBarRef = useContext(LoadingBarContext);
   const registerNewCompany = async () => {
     try {
+      loadingBarRef.current.continuousStart();
       const res = await axios.post(
         `${COMPANY_API_END_POINT}/register`,
         { companyName },
@@ -35,6 +38,8 @@ const CompanyCreate = () => {
     } catch (error) {
       toast.error(error.response.data.message);
       console.log(error);
+    } finally {
+      loadingBarRef.current.complete();
     }
   };
   return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Button } from "../ui/button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -10,6 +10,7 @@ import axios from "axios";
 import { COMPANY_API_END_POINT } from "@/utils/constant";
 import { useSelector } from "react-redux";
 import useGetCompanyById from "@/Hooks/useGetCompanyById";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const CompanySetup = () => {
   const params = useParams();
@@ -22,6 +23,7 @@ const CompanySetup = () => {
     file: null,
   });
   const { singleCompany } = useSelector((store) => store.company);
+  const loadingBarRef = useContext(LoadingBarContext);
   const [loading, setLoading] = useState(false);
   const changeEventHandler = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
@@ -44,6 +46,7 @@ const CompanySetup = () => {
       formData.append("file", input.file);
     }
     try {
+      loadingBarRef.current.continuousStart();
       setLoading(true);
       const res = await axios.put(
         `${COMPANY_API_END_POINT}/update/${params.id}`,
@@ -63,6 +66,7 @@ const CompanySetup = () => {
       console.log(error);
       toast.error(error.response.data.message);
     } finally {
+      loadingBarRef.current.complete();
       setLoading(false);
     }
   };

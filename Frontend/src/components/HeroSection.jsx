@@ -27,6 +27,13 @@ const HeroSection = () => {
     dispatch(setSearchedQuery(query));
     navigate("/browse");
   };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      searchJobHandler();
+    }
+  };
+
   return (
     <div className="text-center">
       <div className="flex flex-col gap-5 my-10">
@@ -46,6 +53,7 @@ const HeroSection = () => {
             type="text"
             placeholder={`${placeholder} 💻`}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full border-none outline-none dark:bg-[#020817]"
           />
           <Button

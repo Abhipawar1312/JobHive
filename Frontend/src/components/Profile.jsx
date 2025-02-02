@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import Navbar from "./shared/Navbar";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Contact, Mail, Pen } from "lucide-react";
@@ -9,11 +9,15 @@ import AppliedJobTable from "./AppliedJobTable";
 import UpdateProfileDialog from "./UpdateProfileDialog";
 import { useSelector } from "react-redux";
 import useGetAppliedJobs from "@/Hooks/useGetAppliedJobs";
+import { LoadingBarContext } from "./LoadingBarContext";
 
 const skills = ["Html", "CSS", "Javascript", "Reactjs"];
 const isResume = true;
 const Profile = () => {
   useGetAppliedJobs();
+  const loadingBarRef = useContext(LoadingBarContext);
+  loadingBarRef.current.continuousStart();
+  loadingBarRef.current.complete();
   const [open, setOpen] = useState(false);
 
   const { user } = useSelector((store) => store.auth);

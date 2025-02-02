@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -12,12 +12,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Edit2, Eye, MoreHorizontal } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const AdminJobsTable = () => {
   const { allAdminJobs, searchJobByText } = useSelector((store) => store.job);
   const navigate = useNavigate();
+  const loadingBarRef = useContext(LoadingBarContext);
   const [filterJobs, setFilterJobs] = useState(allAdminJobs);
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
     const filteredJobs =
       allAdminJobs.length >= 0 &&
       allAdminJobs.filter((job) => {
@@ -31,6 +34,7 @@ const AdminJobsTable = () => {
             .includes(searchJobByText.toLowerCase())
         );
       });
+    loadingBarRef.current.complete();
     setFilterJobs(filteredJobs);
   }, [allAdminJobs, searchJobByText]);
   return (

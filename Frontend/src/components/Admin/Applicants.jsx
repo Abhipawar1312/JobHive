@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import Navbar from "../shared/Navbar";
 import ApplicantsTable from "./ApplicantsTable";
 import { useParams } from "react-router-dom";
@@ -6,13 +6,16 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { APPLICATION_API_END_POINT } from "@/utils/constant";
 import { setAllApplicants } from "../redux/applicationSlice";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const Applicants = () => {
   const params = useParams();
   const dispatch = useDispatch();
   const { applicants } = useSelector((store) => store.application);
+  const loadingBarRef = useContext(LoadingBarContext);
 
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
     const fetchAllApplicants = async () => {
       try {
         const res = await axios.get(
@@ -22,6 +25,8 @@ const Applicants = () => {
         dispatch(setAllApplicants(res.data.job));
       } catch (error) {
         console.log(error);
+      } finally {
+        loadingBarRef.current.complete();
       }
     };
     fetchAllApplicants();

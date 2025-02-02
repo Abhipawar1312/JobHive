@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "./shared/Navbar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -9,9 +9,11 @@ import { setSingleJob } from "./redux/jobSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { User } from "lucide-react";
+import { LoadingBarContext } from "./LoadingBarContext";
 
 const JobDescription = () => {
   const { singleJob } = useSelector((store) => store.job);
+  console.log(singleJob);
   const { user } = useSelector((store) => store.auth);
   const isInitiallyApplied = singleJob?.applications?.some(
     (application) => application.applicant === user?._id || false
@@ -21,9 +23,10 @@ const JobDescription = () => {
   const params = useParams();
   const jobId = params.id;
   const dispatch = useDispatch();
-
+  const loadingBarRef = useContext(LoadingBarContext);
   const applyJobHandler = async () => {
     try {
+      loadingBarRef.current.continuousStart();
       const res = await axios.get(
         `${APPLICATION_API_END_POINT}/apply/${jobId}`,
         { withCredentials: true }
@@ -41,11 +44,14 @@ const JobDescription = () => {
     } catch (error) {
       console.log(error);
       toast.error(error.response.data.message);
+    } finally {
+      loadingBarRef.current.complete();
     }
   };
   useEffect(() => {
     const fetchSingleJob = async () => {
       try {
+        loadingBarRef.current.continuousStart();
         const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
           withCredentials: true,
         });
@@ -59,6 +65,8 @@ const JobDescription = () => {
         }
       } catch (error) {
         console.log(error);
+      } finally {
+        loadingBarRef.current.complete();
       }
     };
     fetchSingleJob();
@@ -114,6 +122,12 @@ const JobDescription = () => {
             Description:{" "}
             <span className="pl-4 font-normal text-gray-800 dark:text-white">
               {singleJob?.description}
+            </span>
+          </h1>
+          <h1 className="my-1 font-bold">
+            Requirements:{" "}
+            <span className="pl-4 font-normal text-gray-800 dark:text-white">
+              {singleJob?.requirements?.join(", ")}
             </span>
           </h1>
           <h1 className="my-1 font-bold">

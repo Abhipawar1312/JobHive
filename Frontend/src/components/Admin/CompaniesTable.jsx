@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -13,14 +13,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Edit2, MoreHorizontal } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const CompaniesTable = () => {
   const { companies, searchCompanyByText } = useSelector(
     (store) => store.company
   );
   const navigate = useNavigate();
+  const loadingBarRef = useContext(LoadingBarContext);
   const [filterCompany, setFilterCompany] = useState(companies);
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
     const filteredCompany =
       companies.length >= 0 &&
       companies.filter((company) => {
@@ -31,6 +34,7 @@ const CompaniesTable = () => {
           ?.toLowerCase()
           .includes(searchCompanyByText.toLowerCase());
       });
+    loadingBarRef.current.complete();
     setFilterCompany(filteredCompany);
   }, [companies, searchCompanyByText]);
   return (

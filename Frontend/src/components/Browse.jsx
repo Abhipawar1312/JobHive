@@ -1,16 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import Navbar from "./shared/Navbar";
 import Job from "./Job";
 import { useDispatch, useSelector } from "react-redux";
 import { setSearchedQuery } from "./redux/jobSlice";
 import useGetAllJobs from "@/Hooks/useGetAllJobs";
+import { LoadingBarContext } from "./LoadingBarContext";
 
 const randomJobs = [1, 2, 3, 4, 5, 6];
 const Browse = () => {
   useGetAllJobs();
   const { allJobs } = useSelector((store) => store.job);
+  const loadingBarRef = useContext(LoadingBarContext);
   const dispatch = useDispatch();
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
+    loadingBarRef.current.complete();
     return () => {
       dispatch(setSearchedQuery(""));
     };

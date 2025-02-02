@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const PostJobs = () => {
   const [input, setInput] = useState({
@@ -34,6 +35,7 @@ const PostJobs = () => {
   const navigate = useNavigate();
   const { jobId } = useParams(); // Grab jobId from URL
   const { companies } = useSelector((store) => store.company);
+  const loadingBarRef = useContext(LoadingBarContext);
 
   const isEditMode = Boolean(jobId);
   // console.log(isEditMode);
@@ -43,6 +45,7 @@ const PostJobs = () => {
     if (isEditMode) {
       const fetchJobDetails = async () => {
         try {
+          loadingBarRef.current.continuousStart();
           setLoading(true);
           const res = await axios.get(
             `${JOB_API_END_POINT}/admin/jobs/${jobId}`,
@@ -76,6 +79,7 @@ const PostJobs = () => {
             error.response.data.message || "Error fetching job details"
           );
         } finally {
+          loadingBarRef.current.complete();
           setLoading(false);
         }
       };

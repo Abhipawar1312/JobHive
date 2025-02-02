@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -7,13 +7,17 @@ import { useDispatch } from "react-redux";
 import AdminJobsTable from "./AdminJobsTable";
 import useGetAllAdminJobs from "@/Hooks/useGetAllAdminJobs";
 import { setSearchJobByText } from "../redux/jobSlice";
+import { LoadingBarContext } from "../LoadingBarContext";
 
 const AdminJobs = () => {
   useGetAllAdminJobs();
   const [input, setInput] = useState("");
+  const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
+    loadingBarRef.current.continuousStart();
+    loadingBarRef.current.complete();
     dispatch(setSearchJobByText(input));
   }, [input]);
   return (
