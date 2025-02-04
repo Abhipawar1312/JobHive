@@ -38,7 +38,7 @@ const Job = ({ job }) => {
         </div>
       </div>
       <div className="flex-grow">
-        <h1 className="my-2 text-lg font-bold">{job?.title} </h1>
+        <h1 className="my-2 text-lg font-bold line-clamp-1">{job?.title} </h1>
         <p className="text-sm text-gray-600 line-clamp-5 dark:text-white">
           {job?.description}
         </p>

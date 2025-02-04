@@ -41,10 +41,19 @@ const Navbar = () => {
     <div>
       <div className="flex items-center justify-between h-16 mx-auto max-w-7xl">
         <div>
-          <h1 className="text-2xl font-bold">
-            Job<span className="text-[#F83002]">Portal</span>
-          </h1>
+          {!user || user.role === "student" ? (
+            <Link to="/">
+              <h1 className="text-2xl font-bold cursor-pointer">
+                Job<span className="text-[#F83002]">Portal</span>
+              </h1>
+            </Link>
+          ) : (
+            <h1 className="text-2xl font-bold">
+              Job<span className="text-[#F83002]">Portal</span>
+            </h1>
+          )}
         </div>
+
         <div className="flex items-center gap-12">
           <ul className="flex items-center gap-5 font-medium">
             {user && user.role === "recruiter" ? (
