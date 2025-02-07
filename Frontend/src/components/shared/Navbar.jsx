@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage } from "../ui/avatar";
-import { LogOut, User2 } from "lucide-react";
+import { Bookmark, LogOut, User2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
@@ -12,6 +12,7 @@ import { USER_API_END_POINT } from "@/utils/constant";
 import { setUser } from "../redux/authSlice";
 import DarkMode from "./DarkMode";
 import { LoadingBarContext } from "../LoadingBarContext";
+import { clearSavedJobs } from "../redux/savedJobSlice";
 
 const Navbar = () => {
   const { user } = useSelector((store) => store.auth);
@@ -27,6 +28,7 @@ const Navbar = () => {
       });
       if (res.data.success) {
         dispatch(setUser(null));
+        dispatch(clearSavedJobs());
         navigate("/");
         toast.success(res.data.message);
       }
@@ -119,13 +121,22 @@ const Navbar = () => {
                   </div>
                   <div className="flex flex-col my-2 text-gray-600">
                     {user && user.role === "student" && (
-                      <div className="flex items-center gap-2 cursor-pointer w-fit">
-                        <User2 />
-                        <Button variant="link">
-                          {" "}
-                          <Link to="/profile">View Profile</Link>
-                        </Button>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-2 cursor-pointer w-fit">
+                          <User2 />
+                          <Button variant="link">
+                            {" "}
+                            <Link to="/profile">View Profile</Link>
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2 cursor-pointer w-fit">
+                          <Bookmark />
+                          <Button variant="link">
+                            {" "}
+                            <Link to="/SavedJobs">Saved Jobs</Link>
+                          </Button>
+                        </div>
+                      </>
                     )}
 
                     <div className="flex items-center gap-2 cursor-pointer w-fit">

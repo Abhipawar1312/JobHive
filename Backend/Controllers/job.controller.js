@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Job } from "../models/job.model.js"
+import { SavedJob } from "../models/savedJobs.model.js";
 
 //admin
 export const postJob = async (req, res) => {
@@ -37,6 +38,7 @@ export const postJob = async (req, res) => {
 //student
 export const getAllJobs = async (req, res) => {
     try {
+        const userId = req.id; // from your authentication middleware
         const keyword = req.query.keyword || "";
         const query = {
             $or: [
@@ -44,25 +46,38 @@ export const getAllJobs = async (req, res) => {
                 { description: { $regex: keyword, $options: "i" } },
             ]
         };
-        const jobs = await Job.find(query).populate({
-            path: "company"
-        }).sort({ createdAt: -1 });
-        // console.log(jobs);
-        if (!jobs) {
-            return res.status(404).json({
-                message: "Jobs Not Found",
-                success: false
-            });
-        };
-        return res.status(200).json({
-            jobs,
-            success: true
-        })
-    } catch (error) {
-        console.log(error);
-    }
-}
 
+        // Fetch all jobs matching the query
+        const jobs = await Job.find(query)
+            .populate({
+                path: "company"
+            })
+            .sort({ createdAt: -1 });
+
+        // Fetch all saved jobs for the current user
+        const savedJobs = await SavedJob.find({ user: userId });
+        const savedJobIds = savedJobs.map((savedJob) => savedJob.job.toString());
+
+        // Add the "isSaved" property to each job
+        const jobsWithSavedStatus = jobs.map((job) => {
+            const jobObj = job.toObject();
+            jobObj.isSaved = savedJobIds.includes(jobObj._id.toString());
+            return jobObj;
+        });
+
+        return res.status(200).json({
+            jobs: jobsWithSavedStatus,
+            savedJobs, // complete saved jobs details if needed on the frontend
+            success: true,
+        });
+    } catch (error) {
+        console.error("Error retrieving jobs:", error);
+        return res.status(500).json({
+            message: "Internal Server Error",
+            success: false,
+        });
+    }
+};
 //student
 export const getJobById = async (req, res) => {
     try {

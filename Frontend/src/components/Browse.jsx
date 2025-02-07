@@ -5,11 +5,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { setSearchedQuery } from "./redux/jobSlice";
 import useGetAllJobs from "@/Hooks/useGetAllJobs";
 import { LoadingBarContext } from "./LoadingBarContext";
+import useGetAllSavedJobs from "@/Hooks/useGetAllSavedJobs";
 
 const randomJobs = [1, 2, 3, 4, 5, 6];
 const Browse = () => {
   useGetAllJobs();
+  useGetAllSavedJobs();
   const { allJobs } = useSelector((store) => store.job);
+  console.log(allJobs, "allJobs");
   const loadingBarRef = useContext(LoadingBarContext);
   const dispatch = useDispatch();
   useEffect(() => {
