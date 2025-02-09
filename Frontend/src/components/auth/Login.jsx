@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -70,7 +69,6 @@ const Login = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="flex items-center justify-center mx-auto max-w-7xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -93,14 +91,14 @@ const Login = () => {
               })}
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="mt-1 text-sm text-red-500">
                 {errors.email.message}
               </p>
             )}
           </div>
 
           {/* Password Field with Toggle */}
-          <div className="my-2 relative">
+          <div className="relative my-2">
             <Label>Password</Label>
             <Input
               type={showPassword ? "text" : "password"}
@@ -125,13 +123,13 @@ const Login = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-9 text-gray-600"
+              className="absolute text-gray-600 right-2 top-9"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="mt-1 text-sm text-red-500">
                 {errors.password.message}
               </p>
             )}
@@ -161,7 +159,7 @@ const Login = () => {
               </div>
             </div>
             {errors.role && (
-              <p className="text-red-500 text-sm">{errors.role.message}</p>
+              <p className="text-sm text-red-500">{errors.role.message}</p>
             )}
           </div>
 

@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from "react";
-import Navbar from "./shared/Navbar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useParams } from "react-router-dom";
@@ -73,7 +72,6 @@ const JobDescription = () => {
   }, [jobId, dispatch, user?.id]);
   return (
     <>
-      <Navbar />
       <div className="mx-auto my-10 max-w-7xl">
         <div className="flex items-center justify-between">
           <div>

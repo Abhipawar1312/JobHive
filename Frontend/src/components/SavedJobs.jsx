@@ -1,7 +1,6 @@
 import useGetAllSavedJobs from "@/Hooks/useGetAllSavedJobs";
 import React from "react";
 import { useSelector } from "react-redux";
-import Navbar from "./shared/Navbar";
 import Job from "./Job";
 
 const SavedJobs = () => {
@@ -15,7 +14,6 @@ const SavedJobs = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="mx-auto my-10 max-w-7xl">
         <h1 className="my-10 text-xl font-bold">
           Search Results ({savedJobs.length})

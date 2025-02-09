@@ -1,5 +1,4 @@
 import React, { useContext, useState } from "react";
-import Navbar from "./shared/Navbar";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Contact, Mail, Pen } from "lucide-react";
 import { Button } from "./ui/button";
@@ -24,7 +23,6 @@ const Profile = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="max-w-4xl p-8 mx-auto my-5 border border-gray-200 rounded-2xl">
         <div className="flex justify-between">
           <div className="flex items-center gap-4">

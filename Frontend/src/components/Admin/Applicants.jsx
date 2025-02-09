@@ -1,5 +1,4 @@
 import React, { useContext, useEffect } from "react";
-import Navbar from "../shared/Navbar";
 import ApplicantsTable from "./ApplicantsTable";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -34,7 +33,6 @@ const Applicants = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="mx-auto max-w-7xl">
         <h1 className="my-5 text-xl font-bold">
           Applicants {applicants?.applications?.length}

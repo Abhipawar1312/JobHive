@@ -1,5 +1,4 @@
 import React, { useContext, useState } from "react";
-import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../ui/input";
@@ -44,7 +43,6 @@ const CompanyCreate = () => {
   };
   return (
     <div>
-      <Navbar />
       <div className="max-w-4xl mx-auto">
         <div className="my-10">
           <h1 className="text-2xl font-bold">Your Company Name</h1>

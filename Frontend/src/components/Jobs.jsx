@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "./shared/Navbar";
 import FilterCard from "./FilterCard";
 import Job from "./Job";
 import { useSelector } from "react-redux";
@@ -46,7 +45,6 @@ const Jobs = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="mx-auto mt-5 max-w-7xl">
         <div className="flex gap-5">
           <div className="w-20%">

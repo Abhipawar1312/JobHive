@@ -1,12 +1,19 @@
 import React from "react";
 import LatestJobCards from "./LatestJobCards";
 import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
 
 const LatestJobs = () => {
   const { allJobs } = useSelector((store) => store.job);
 
   return (
-    <div className="mx-auto my-20 lg:max-w-7xl">
+    <motion.div
+      initial={{ opacity: 0, x: -100 }} // starts 100px to the left of its final position
+      animate={{ opacity: 1, x: 0 }} // animates to its natural position
+      exit={{ opacity: 0, x: -100 }} // exits by moving back to the left
+      transition={{ duration: 0.3 }}
+      className="mx-auto my-20 lg:max-w-7xl"
+    >
       <h1 className="text-4xl font-bold">
         {" "}
         <span className="text-[#6A49C2]">Latest & Top</span> Job Openings
@@ -20,7 +27,7 @@ const LatestJobs = () => {
             .map((job, index) => <LatestJobCards key={job._id} job={job} />)
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

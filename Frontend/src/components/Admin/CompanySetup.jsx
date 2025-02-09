@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import Navbar from "../shared/Navbar";
 import { Button } from "../ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -88,7 +87,6 @@ const CompanySetup = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="max-w-xl mx-auto my-10">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="flex items-center gap-5 p-8">
@@ -111,7 +109,7 @@ const CompanySetup = () => {
                 {...register("name", { required: "Company name is required" })}
               />
               {errors.name && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-sm text-red-500">
                   {errors.name.message}
                 </p>
               )}
@@ -126,7 +124,7 @@ const CompanySetup = () => {
                 })}
               />
               {errors.description && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-sm text-red-500">
                   {errors.description.message}
                 </p>
               )}
@@ -145,7 +143,7 @@ const CompanySetup = () => {
                 })}
               />
               {errors.website && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-sm text-red-500">
                   {errors.website.message}
                 </p>
               )}
@@ -158,7 +156,7 @@ const CompanySetup = () => {
                 {...register("location", { required: "Location is required" })}
               />
               {errors.location && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-sm text-red-500">
                   {errors.location.message}
                 </p>
               )}
@@ -200,7 +198,7 @@ const CompanySetup = () => {
                 })}
               />
               {errors.file && (
-                <p className="text-red-500 text-sm">{errors.file.message}</p>
+                <p className="text-sm text-red-500">{errors.file.message}</p>
               )}
             </div>
           </div>

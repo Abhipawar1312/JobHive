@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -148,7 +147,6 @@ const PostJobs = () => {
 
   return (
     <div>
-      <Navbar />
       <div className="flex items-center justify-center w-screen my-5">
         <form
           onSubmit={handleSubmit(onSubmit)}
