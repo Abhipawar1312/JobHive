@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import { setSearchedQuery } from "./redux/jobSlice";
 import { LoadingBarContext } from "./LoadingBarContext";
 
-// Filter options for Location, Industry, and Salary.
 const filterData = [
   {
     filterType: "Location",
@@ -23,19 +22,16 @@ const filterData = [
 
 const parseSalaryRange = (salaryString) => {
   const str = salaryString.replace(/\s/g, "");
-
   const match = str.match(/(\d+)(k|lakh)-(\d+)(k|lakh)/i);
   if (match) {
     let [, num1, unit1, num2, unit2] = match;
     num1 = parseInt(num1, 10);
     num2 = parseInt(num2, 10);
-
     const convert = (num, unit) => {
       if (unit.toLowerCase() === "k") return num * 1000;
       if (unit.toLowerCase() === "lakh") return num * 100000;
       return num;
     };
-
     const min = convert(num1, unit1);
     const max = convert(num2, unit2);
     return { min, max };
@@ -44,13 +40,11 @@ const parseSalaryRange = (salaryString) => {
 };
 
 const FilterCard = () => {
-  // Two states to hold text-based and salary-based selections.
   const [selectedText, setSelectedText] = useState("");
   const [selectedSalary, setSelectedSalary] = useState("");
   const dispatch = useDispatch();
   const loadingBarRef = useContext(LoadingBarContext);
 
-  // Whenever either filter changes, dispatch a new searched query.
   useEffect(() => {
     loadingBarRef.current.continuousStart();
     dispatch(
@@ -62,13 +56,8 @@ const FilterCard = () => {
     loadingBarRef.current.complete();
   }, [selectedText, selectedSalary, dispatch, loadingBarRef]);
 
-  /**
-   * Change handler for the radio group.
-   * Determines if the selected value belongs to the salary category (by checking for "k" or "lakh")
-   * and updates the corresponding state.
-   */
   const changeHandler = (value) => {
-    // Check if the first character is a digit (0-9)
+    // If the value starts with a digit, assume it is a salary filter.
     if (/^\d/.test(value)) {
       setSelectedSalary(value);
       setSelectedText("");
@@ -79,16 +68,17 @@ const FilterCard = () => {
   };
 
   return (
-    <div className="w-full p-3 rounded-md">
-      <h1 className="text-lg font-bold">Filter Jobs</h1>
-      <hr className="mt-3" />
+    <div className="w-full p-3 rounded-md shadow-lg">
+      <h1 className="mb-2 text-lg font-bold">Filter Jobs</h1>
+      <hr className="mt-3 mb-3" />
       <RadioGroup
         value={selectedText || selectedSalary}
         onValueChange={changeHandler}
+        className="space-y-4"
       >
         {filterData.map((data, index) => (
           <div key={index}>
-            <h1 className="text-lg font-bold">{data.filterType}</h1>
+            <h1 className="font-semibold text-md">{data.filterType}</h1>
             {data.array.map((item, idx) => {
               const itemId = `id${index}-${idx}`;
               return (

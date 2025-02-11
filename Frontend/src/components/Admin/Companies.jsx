@@ -14,17 +14,19 @@ const Companies = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const loadingBarRef = useContext(LoadingBarContext);
+
   useEffect(() => {
     loadingBarRef.current.continuousStart();
     dispatch(setSearchCompanyByText(input));
     loadingBarRef.current.complete();
-  }, [input]);
+  }, [input, dispatch, loadingBarRef]);
+
   return (
-    <div>
+    <div className="px-4">
       <div className="max-w-6xl mx-auto my-10">
-        <div className="flex items-center justify-between my-5">
+        <div className="flex flex-col items-center justify-between gap-3 my-5 sm:flex-row">
           <Input
-            className="w-fit"
+            className="w-full sm:w-auto"
             placeholder="Filter by Name"
             onChange={(e) => setInput(e.target.value)}
           />

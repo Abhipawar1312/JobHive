@@ -1,13 +1,16 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
-import { useSelector } from "react-redux";
+import { toast } from "sonner";
 import axios from "axios";
 import { JOB_API_END_POINT } from "@/utils/constant";
-import { toast } from "sonner";
+import { useSelector } from "react-redux";
+import useGetAllCompanies from "@/Hooks/useGetAllCompanies";
+import { LoadingBarContext } from "../LoadingBarContext";
 import {
   Select,
   SelectContent,
@@ -16,8 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { LoadingBarContext } from "../LoadingBarContext";
-import { useForm } from "react-hook-form";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -26,7 +28,8 @@ import {
   CommandItem,
   CommandList,
 } from "../ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import MDEditor from "@uiw/react-md-editor";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const PostJobs = () => {
@@ -35,13 +38,12 @@ const PostJobs = () => {
   const { companies } = useSelector((store) => store.company);
   const loadingBarRef = useContext(LoadingBarContext);
   const [open, setOpen] = useState(false);
-
   const isEditMode = Boolean(jobId);
 
-  // Initialize react-hook-form
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     watch,
     formState: { errors, isSubmitting, isSubmitted },
@@ -59,15 +61,12 @@ const PostJobs = () => {
     },
   });
 
-  // Watch the companyId so that the popover button shows the proper value
+  // Watch companyId to show the selected company in the popover button
   const selectedCompanyId = watch("companyId");
-
-  // Determine the currently selected company from companies array
   const selectedCompany = companies.find(
     (company) => company._id === selectedCompanyId
   );
 
-  // Fetch job details if in edit mode
   useEffect(() => {
     if (isEditMode) {
       const fetchJobDetails = async () => {
@@ -76,18 +75,15 @@ const PostJobs = () => {
           const res = await axios.get(
             `${JOB_API_END_POINT}/admin/jobs/${jobId}`,
             {
-              headers: {
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               withCredentials: true,
             }
           );
           if (res.data.success) {
             const job = res.data.job;
-            // Populate the form values using setValue
             setValue("title", job.title);
             setValue("description", job.description);
-            setValue("requirements", job.requirements.join(","));
+            setValue("requirements", job.requirements);
             setValue("salary", job.salary);
             setValue("location", job.location);
             setValue("jobType", job.jobType);
@@ -109,20 +105,8 @@ const PostJobs = () => {
     }
   }, [jobId, isEditMode, loadingBarRef, setValue]);
 
-  // Handler for company selection from the custom Select component
-  const selectChangeHandler = (value) => {
-    const selectedCompany = companies.find(
-      (company) => company.name.toLowerCase() === value
-    );
-    if (selectedCompany) {
-      setValue("companyId", selectedCompany._id);
-    }
-  };
-
-  // Form submit handler using react-hook-form
   const onSubmit = async (data) => {
     if (!data.companyId) {
-      // if company is not selected, do nothing; error message will be shown via isSubmitted condition
       return;
     }
     try {
@@ -131,9 +115,7 @@ const PostJobs = () => {
         : `${JOB_API_END_POINT}/post`;
       const method = isEditMode ? "put" : "post";
       const res = await axios[method](url, data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         withCredentials: true,
       });
       if (res.data.success) {
@@ -146,134 +128,168 @@ const PostJobs = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-center w-screen my-5">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="max-w-4xl p-8 border border-gray-200 rounded-md shadow-lg"
+    <div className="max-w-4xl px-4 py-8 mx-auto">
+      {/* Header with Back button and title */}
+      <div className="flex items-center justify-between mb-8">
+        <Button
+          onClick={() => navigate("/admin/jobs")}
+          variant="outline"
+          className="flex items-center gap-2"
         >
-          <h2 className="text-xl font-bold text-center">
-            {isEditMode ? "Update Job" : "Post New Job"}
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Title</Label>
-              <Input
-                type="text"
-                {...register("title", { required: "Title is required" })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
+          <ArrowLeft />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">
+          {isEditMode ? "Update Job" : "Post a Job"}
+        </h1>
+        <div className="w-10" />
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Title */}
+        <div>
+          <Label>Title</Label>
+          <Input
+            type="text"
+            placeholder="Job Title"
+            {...register("title", { required: "Title is required" })}
+            className="mt-1"
+          />
+          {errors.title && (
+            <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <Label>Description</Label>
+          <Input
+            type="text"
+            placeholder="Job Description"
+            {...register("description", {
+              required: "Description is required",
+            })}
+            className="mt-1"
+          />
+          {errors.description && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
+
+        {/* Requirements with MDEditor */}
+        <div className="md-editor-container">
+          <Controller
+            control={control}
+            name="requirements"
+            rules={{ required: "Requirements are required" }}
+            render={({ field }) => (
+              <MDEditor
+                value={field.value}
+                onChange={field.onChange}
+                textareaProps={{
+                  placeholder: "Please enter the requirements here...",
+                }}
               />
-              {errors.title && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.title.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Input
-                type="text"
-                {...register("description", {
-                  required: "Description is required",
-                })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.description && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Requirements</Label>
-              <Input
-                type="text"
-                {...register("requirements", {
-                  required: "Requirements are required",
-                })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.requirements && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.requirements.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Salary</Label>
-              <Input
-                type="text"
-                {...register("salary", { required: "Salary is required" })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.salary && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.salary.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Location</Label>
-              <Input
-                type="text"
-                {...register("location", { required: "Location is required" })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.location && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.location.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Job Type</Label>
-              <Input
-                type="text"
-                {...register("jobType", { required: "Job Type is required" })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.jobType && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.jobType.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>Experience Level</Label>
-              <Input
-                type="text"
-                {...register("experience", {
-                  required: "Experience Level is required",
-                })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.experience && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.experience.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <Label>No of Positions</Label>
-              <Input
-                type="number"
-                {...register("position", {
-                  required: "Number of positions is required",
-                  min: {
-                    value: 1,
-                    message: "At least one position is required",
-                  },
-                })}
-                className="my-1 focus-visible:ring-offset-0 focus-visible:ring-0"
-              />
-              {errors.position && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.position.message}
-                </p>
-              )}
-            </div>
+            )}
+          />
+          {errors.requirements && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.requirements.message}
+            </p>
+          )}
+        </div>
+
+        {/* Job Type & Experience Level */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label>Job Type</Label>
+            <Input
+              type="text"
+              placeholder="Job Type"
+              {...register("jobType", { required: "Job Type is required" })}
+              className="mt-1"
+            />
+            {errors.jobType && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.jobType.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <Label>Experience Level</Label>
+            <Input
+              type="text"
+              placeholder="Experience Level"
+              {...register("experience", {
+                required: "Experience Level is required",
+              })}
+              className="mt-1"
+            />
+            {errors.experience && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.experience.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* No. of Positions & Location */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label>No. of Positions</Label>
+            <Input
+              type="number"
+              placeholder="Number of Positions"
+              {...register("position", {
+                required: "Number of positions is required",
+                min: { value: 1, message: "At least one position is required" },
+              })}
+              className="mt-1"
+            />
+            {errors.position && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.position.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label>Location</Label>
+            <Input
+              type="text"
+              {...register("location", { required: "Location is required" })}
+              className="my-1"
+            />
+            {errors.location && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.location.message}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Salary */}
+          <div>
+            <Label>Salary</Label>
+            <Input
+              type="text"
+              placeholder="Salary"
+              {...register("salary", { required: "Salary is required" })}
+              className="mt-1"
+            />
+            {errors.salary && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.salary.message}
+              </p>
+            )}
+          </div>
+          {/* Company Selection */}
+          <div>
             {companies.length > 0 && (
-              <div className="flex flex-col col-span-2 gap-2">
+              <div className="flex flex-col col-span-1 gap-2 md:col-span-2">
                 <Label>Company</Label>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
@@ -281,7 +297,7 @@ const PostJobs = () => {
                       variant="outline"
                       role="combobox"
                       aria-expanded={open}
-                      className="w-[400px] justify-between"
+                      className="justify-between w-full"
                     >
                       {selectedCompany
                         ? selectedCompany.name
@@ -308,14 +324,7 @@ const PostJobs = () => {
                               }}
                             >
                               {company.name}
-                              <Check
-                                className={cn(
-                                  "ml-auto",
-                                  selectedCompanyId === company._id
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
+                              {/* You may implement a check icon here if needed */}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -331,13 +340,16 @@ const PostJobs = () => {
               </div>
             )}
           </div>
+        </div>
+        {/* Submit Button */}
+        <div>
           {isSubmitting ? (
-            <Button className="w-full my-4" disabled>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please wait
+            <Button className="w-full" disabled>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please wait...
             </Button>
           ) : (
-            <Button type="submit" className="w-full my-4">
-              {isEditMode ? "Update Job" : "Post New Job"}
+            <Button type="submit" className="w-full">
+              {isEditMode ? "Update Job" : "Post Job"}
             </Button>
           )}
           {companies.length === 0 && (
@@ -345,8 +357,8 @@ const PostJobs = () => {
               *Please register a company first, before posting a job
             </p>
           )}
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

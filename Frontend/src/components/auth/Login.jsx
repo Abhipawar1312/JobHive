@@ -9,7 +9,7 @@ import axios from "axios";
 import { USER_API_END_POINT } from "@/utils/constant";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setUser } from "../redux/authSlice";
-import { Loader2, Eye, EyeOff } from "lucide-react"; // Import icons for password toggle
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { LoadingBarContext } from "../LoadingBarContext";
 
 const Login = () => {
@@ -17,11 +17,8 @@ const Login = () => {
   const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // State for toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
 
-  // Set up React Hook Form with default values and validation rules
   const {
     register,
     handleSubmit,
@@ -34,16 +31,13 @@ const Login = () => {
     },
   });
 
-  // onSubmit receives the validated data from the form
   const onSubmit = async (data) => {
     try {
       loadingBarRef.current.continuousStart();
       dispatch(setLoading(true));
 
       const res = await axios.post(`${USER_API_END_POINT}/login`, data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         withCredentials: true,
       });
       if (res.data.success) {
@@ -60,7 +54,6 @@ const Login = () => {
     }
   };
 
-  // If user is already logged in, redirect to home
   useEffect(() => {
     if (user) {
       navigate("/");
@@ -68,11 +61,11 @@ const Login = () => {
   }, [user, navigate]);
 
   return (
-    <div>
+    <div className="px-4">
       <div className="flex items-center justify-center mx-auto max-w-7xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="w-1/2 p-4 my-10 border border-gray-200 rounded-md"
+          className="w-full p-4 my-10 border border-gray-200 rounded-md sm:w-3/4 md:w-1/2"
         >
           <h1 className="mb-5 text-xl font-bold">Login</h1>
 
@@ -110,16 +103,14 @@ const Login = () => {
                   message: "Password must be at least 8 characters",
                 },
                 pattern: {
-                  // Password must have at least one uppercase letter, one lowercase letter, one digit, and one special character.
                   value:
                     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^])[A-Za-z\d@$!%*?&#^]{8,}$/,
                   message:
                     "Password must have at least one uppercase, one lowercase, one digit and one special character",
                 },
               })}
-              className="pr-10" // Add right padding for the icon
+              className="pr-10"
             />
-            {/* Eye toggle button */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}

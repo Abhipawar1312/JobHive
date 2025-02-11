@@ -2,10 +2,12 @@ import React, { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./shared/Navbar";
 import { Loader } from "lucide-react";
+import ScrollToTop from "./ScrollToTop";
 
 const RootLayout = () => {
   return (
     <>
+      <ScrollToTop />
       <Navbar />
       <Suspense
         fallback={

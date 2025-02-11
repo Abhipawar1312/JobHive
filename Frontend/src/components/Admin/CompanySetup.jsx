@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "../ui/button";
-import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 import axios from "axios";
 import { COMPANY_API_END_POINT } from "@/utils/constant";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import useGetCompanyById from "@/Hooks/useGetCompanyById";
 import { LoadingBarContext } from "../LoadingBarContext";
@@ -20,7 +20,6 @@ const CompanySetup = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // Initialize React Hook Form with default values
   const {
     register,
     handleSubmit,
@@ -36,7 +35,7 @@ const CompanySetup = () => {
     },
   });
 
-  // When singleCompany is loaded, reset the form values
+  // Populate form fields when the company data is loaded
   useEffect(() => {
     if (singleCompany) {
       reset({
@@ -44,12 +43,10 @@ const CompanySetup = () => {
         description: singleCompany.description || "",
         website: singleCompany.website || "",
         location: singleCompany.location || "",
-        // File cannot be programmatically set in the input
       });
     }
   }, [singleCompany, reset]);
 
-  // onSubmit handler receives validated data
   const onSubmit = async (data) => {
     const formData = new FormData();
     formData.append("name", data.name);
@@ -66,9 +63,7 @@ const CompanySetup = () => {
         `${COMPANY_API_END_POINT}/update/${id}`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
           withCredentials: true,
         }
       );
@@ -86,133 +81,149 @@ const CompanySetup = () => {
   };
 
   return (
-    <div>
-      <div className="max-w-xl mx-auto my-10">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="flex items-center gap-5 p-8">
-            <Button
-              onClick={() => navigate("/admin/companies")}
-              variant="outline"
-              className="flex items-center gap-2 font-semibold text-gray-500"
-            >
-              <ArrowLeft />
-              <span>Back</span>
-            </Button>
-            <h1 className="text-xl font-bold">Company Setup</h1>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Company Name */}
-            <div>
-              <Label>Company Name</Label>
-              <Input
-                type="text"
-                {...register("name", { required: "Company name is required" })}
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-            {/* Description */}
-            <div>
-              <Label>Description</Label>
-              <Input
-                type="text"
-                {...register("description", {
-                  required: "Description is required",
-                })}
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
-            {/* Website */}
-            <div>
-              <Label>Website</Label>
-              <Input
-                type="text"
-                {...register("website", {
-                  required: "Website is required",
-                  pattern: {
-                    value: /^(https?:\/\/)?([\w\d\-_]+\.+\S+)+$/,
-                    message: "Please enter a valid URL",
-                  },
-                })}
-              />
-              {errors.website && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.website.message}
-                </p>
-              )}
-            </div>
-            {/* Location */}
-            <div>
-              <Label>Location</Label>
-              <Input
-                type="text"
-                {...register("location", { required: "Location is required" })}
-              />
-              {errors.location && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.location.message}
-                </p>
-              )}
-            </div>
-            {/* Logo */}
-            <div>
-              <Label>Logo</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                {...register("file", {
-                  required: "Logo is required",
-                  validate: {
-                    fileType: (value) => {
-                      if (value && value.length > 0) {
-                        const allowedTypes = [
-                          "image/jpeg",
-                          "image/png",
-                          "image/gif",
-                        ];
-                        return (
-                          allowedTypes.includes(value[0].type) ||
-                          "Only JPEG, PNG, or GIF images are allowed"
-                        );
-                      }
-                      return true;
-                    },
-                    fileSize: (value) => {
-                      if (value && value.length > 0) {
-                        const maxSize = 1024 * 1024; // 1MB
-                        return (
-                          value[0].size <= maxSize ||
-                          "File size must be less than 1MB"
-                        );
-                      }
-                      return true;
-                    },
-                  },
-                })}
-              />
-              {errors.file && (
-                <p className="text-sm text-red-500">{errors.file.message}</p>
-              )}
-            </div>
-          </div>
+    <div className="max-w-4xl px-4 py-8 mx-auto">
+      {/* Header with Back button and title */}
+      <div className="flex items-center justify-between mb-8">
+        <Button
+          onClick={() => navigate("/admin/companies")}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">Company Setup</h1>
+        {/* An empty div to balance the flex layout if needed */}
+        <div className="w-10" />
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Company Name */}
+        <div>
+          <Label>Company Name</Label>
+          <Input
+            type="text"
+            placeholder="Enter company name"
+            {...register("name", { required: "Company name is required" })}
+            className="mt-1"
+          />
+          {errors.name && (
+            <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <Label>Description</Label>
+          <Input
+            type="text"
+            placeholder="Enter description"
+            {...register("description", {
+              required: "Description is required",
+            })}
+            className="mt-1"
+          />
+          {errors.description && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
+
+        {/* Website */}
+        <div>
+          <Label>Website</Label>
+          <Input
+            type="text"
+            placeholder="Enter website URL"
+            {...register("website", {
+              required: "Website is required",
+              pattern: {
+                value: /^(https?:\/\/)?([\w\d\-_]+\.+\S+)+$/,
+                message: "Please enter a valid URL",
+              },
+            })}
+            className="mt-1"
+          />
+          {errors.website && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.website.message}
+            </p>
+          )}
+        </div>
+
+        {/* Location */}
+        <div>
+          <Label>Location</Label>
+          <Input
+            type="text"
+            placeholder="Enter location"
+            {...register("location", { required: "Location is required" })}
+            className="mt-1"
+          />
+          {errors.location && (
+            <p className="mt-1 text-xs text-red-500">
+              {errors.location.message}
+            </p>
+          )}
+        </div>
+
+        {/* Logo */}
+        <div>
+          <Label>Logo</Label>
+          <Input
+            type="file"
+            accept="image/*"
+            {...register("file", {
+              required: "Logo is required",
+              validate: {
+                fileType: (value) => {
+                  if (value && value.length > 0) {
+                    const allowedTypes = [
+                      "image/jpeg",
+                      "image/png",
+                      "image/gif",
+                    ];
+                    return (
+                      allowedTypes.includes(value[0].type) ||
+                      "Only JPEG, PNG, or GIF images are allowed"
+                    );
+                  }
+                  return true;
+                },
+                fileSize: (value) => {
+                  if (value && value.length > 0) {
+                    const maxSize = 1024 * 1024; // 1MB
+                    return (
+                      value[0].size <= maxSize ||
+                      "File size must be less than 1MB"
+                    );
+                  }
+                  return true;
+                },
+              },
+            })}
+            className="mt-1"
+          />
+          {errors.file && (
+            <p className="mt-1 text-xs text-red-500">{errors.file.message}</p>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <div>
           {loading ? (
-            <Button className="w-full my-4" disabled>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please wait
+            <Button className="w-full" disabled>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please wait...
             </Button>
           ) : (
-            <Button type="submit" className="w-full my-4">
+            <Button type="submit" className="w-full">
               Update
             </Button>
           )}
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

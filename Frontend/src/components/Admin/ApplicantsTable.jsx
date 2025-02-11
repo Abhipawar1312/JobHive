@@ -23,7 +23,6 @@ const ApplicantsTable = () => {
   const loadingBarRef = useContext(LoadingBarContext);
 
   const statusHandler = async (status, id) => {
-    // console.log("called");
     try {
       loadingBarRef.current.continuousStart();
       axios.defaults.withCredentials = true;
@@ -31,7 +30,6 @@ const ApplicantsTable = () => {
         `${APPLICATION_API_END_POINT}/status/${id}/update`,
         { status }
       );
-      // console.log(res);
       if (res.data.success) {
         toast.success(res.data.message);
       }
@@ -41,10 +39,13 @@ const ApplicantsTable = () => {
       loadingBarRef.current.complete();
     }
   };
+
   return (
-    <div>
+    <div className="px-4 overflow-x-auto">
       <Table>
-        <TableCaption>A list of your recent applied user</TableCaption>
+        <TableCaption className="text-sm">
+          A list of your recent applied users
+        </TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>FullName</TableHead>
@@ -57,7 +58,7 @@ const ApplicantsTable = () => {
         </TableHeader>
         <TableBody>
           {applicants &&
-            applicants?.applications?.map((item) => (
+            applicants.applications?.map((item) => (
               <tr key={item._id}>
                 <TableCell>{item?.applicant?.fullname}</TableCell>
                 <TableCell>{item?.applicant?.email}</TableCell>
@@ -65,40 +66,37 @@ const ApplicantsTable = () => {
                 <TableCell>
                   {item.applicant?.profile?.resume ? (
                     <a
-                      className="text-blue-600 cursor-pointer"
-                      href={item?.applicant?.profile?.resume}
+                      className="text-blue-600 hover:underline"
+                      href={item.applicant.profile.resume}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {item?.applicant?.profile?.resumeOriginalName}
+                      {item.applicant.profile.resumeOriginalName}
                     </a>
                   ) : (
                     <span>NA</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  {" "}
                   {item?.applicant?.createdAt
                     ? item.applicant.createdAt.split("T")[0]
                     : "NA"}
                 </TableCell>
-                <TableCell className="float-right cursor-pointer">
+                <TableCell className="text-right">
                   <Popover>
                     <PopoverTrigger>
-                      <MoreHorizontal />
+                      <MoreHorizontal className="cursor-pointer" />
                     </PopoverTrigger>
                     <PopoverContent className="w-32">
-                      {shortlistingStatus.map((status, index) => {
-                        return (
-                          <div
-                            onClick={() => statusHandler(status, item?._id)}
-                            key={index}
-                            className="flex items-center my-2 cursor-pointer w-fit"
-                          >
-                            <span>{status}</span>
-                          </div>
-                        );
-                      })}
+                      {shortlistingStatus.map((status, index) => (
+                        <div
+                          key={index}
+                          onClick={() => statusHandler(status, item._id)}
+                          className="flex items-center px-2 py-1 my-2 rounded cursor-pointer hover:bg-gray-100"
+                        >
+                          <span className="text-sm">{status}</span>
+                        </div>
+                      ))}
                     </PopoverContent>
                   </Popover>
                 </TableCell>

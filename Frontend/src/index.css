@@ -64,3 +64,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+.md-editor-container .wmde-markdown,  /* For older versions */
+.md-editor-container .wmde-preview,   /* If your version uses this */
+.md-editor-container ul {
+  list-style: disc !important;
+  padding-left: 20px;
+}
+
+.md-editor-container {
+  background: transparent !important; /* Removes background */
+}
+
+.md-editor-container pre,
+.md-editor-container code,
+.md-editor-container blockquote {
+  background: transparent !important; /* Ensures no other elements retain background */
+}

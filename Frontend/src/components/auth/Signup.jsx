@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
-import { RadioGroup } from "../ui/radio-group";
 import { Button } from "../ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -10,7 +9,7 @@ import { USER_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading } from "../redux/authSlice";
-import { Loader2, Eye, EyeOff } from "lucide-react"; // Import eye icons for password toggle
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { LoadingBarContext } from "../LoadingBarContext";
 
 const Signup = () => {
@@ -18,11 +17,8 @@ const Signup = () => {
   const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // For toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize React Hook Form with default values
   const {
     register,
     handleSubmit,
@@ -34,11 +30,9 @@ const Signup = () => {
       phoneNumber: "",
       password: "",
       role: "",
-      // File input does not require a default value.
     },
   });
 
-  // onSubmit handler receives validated data
   const onSubmit = async (data) => {
     const formData = new FormData();
     formData.append("fullname", data.fullname);
@@ -70,7 +64,6 @@ const Signup = () => {
     }
   };
 
-  // Redirect if the user is already logged in
   useEffect(() => {
     if (user) {
       navigate("/");
@@ -78,11 +71,11 @@ const Signup = () => {
   }, [user, navigate]);
 
   return (
-    <div>
+    <div className="px-4">
       <div className="flex items-center justify-center mx-auto max-w-7xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="w-1/2 p-4 my-10 border border-gray-200 rounded-md"
+          className="w-full p-4 my-10 border border-gray-200 rounded-md sm:w-3/4 md:w-1/2"
         >
           <h1 className="mb-5 text-xl font-bold">Sign Up</h1>
 
@@ -110,7 +103,6 @@ const Signup = () => {
               {...register("email", {
                 required: "Email is required",
                 pattern: {
-                  // Regex for validating basic email format
                   value: /^\S+@\S+\.\S+$/,
                   message: "Please enter a valid email",
                 },
@@ -132,7 +124,6 @@ const Signup = () => {
               {...register("phoneNumber", {
                 required: "Phone Number is required",
                 pattern: {
-                  // Exactly 10 digits required
                   value: /^[0-9]{10}$/,
                   message: "Phone number must be exactly 10 digits",
                 },
@@ -158,21 +149,14 @@ const Signup = () => {
                   message: "Password must be at least 8 characters",
                 },
                 pattern: {
-                  // Regex explanation:
-                  //   - At least one lowercase letter
-                  //   - At least one uppercase letter
-                  //   - At least one digit
-                  //   - At least one special character
-                  //   - Minimum 8 characters
                   value:
                     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^])[A-Za-z\d@$!%*?&#^]{8,}$/,
                   message:
                     "Password must have at least one uppercase letter, one lowercase letter, one digit, and one special character",
                 },
               })}
-              className="pr-10" // add right padding so the icon doesn't overlap text
+              className="pr-10"
             />
-            {/* Eye toggle button */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}

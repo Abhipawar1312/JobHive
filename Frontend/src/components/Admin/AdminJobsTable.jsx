@@ -19,6 +19,7 @@ const AdminJobsTable = () => {
   const navigate = useNavigate();
   const loadingBarRef = useContext(LoadingBarContext);
   const [filterJobs, setFilterJobs] = useState(allAdminJobs);
+
   useEffect(() => {
     loadingBarRef.current.continuousStart();
     const filteredJobs =
@@ -34,11 +35,12 @@ const AdminJobsTable = () => {
             .includes(searchJobByText.toLowerCase())
         );
       });
-    loadingBarRef.current.complete();
     setFilterJobs(filteredJobs);
-  }, [allAdminJobs, searchJobByText]);
+    loadingBarRef.current.complete();
+  }, [allAdminJobs, searchJobByText, loadingBarRef]);
+
   return (
-    <div>
+    <div className="overflow-x-auto">
       <Table>
         <TableCaption>A list of Your Recent Posted Jobs</TableCaption>
         <TableHeader>
@@ -51,7 +53,7 @@ const AdminJobsTable = () => {
         </TableHeader>
         <TableBody>
           {filterJobs?.map((job) => (
-            <tr>
+            <tr key={job._id}>
               <TableCell>{job?.company?.name}</TableCell>
               <TableCell>{job?.title}</TableCell>
               <TableCell>{job?.createdAt.split("T")[0]}</TableCell>

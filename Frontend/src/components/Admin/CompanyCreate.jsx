@@ -1,8 +1,8 @@
 import React, { useContext, useState } from "react";
 import { Label } from "../ui/label";
-import { useNavigate } from "react-router-dom";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { COMPANY_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
@@ -12,9 +12,10 @@ import { LoadingBarContext } from "../LoadingBarContext";
 
 const CompanyCreate = () => {
   const navigate = useNavigate();
-  const [companyName, setCompanyName] = useState();
+  const [companyName, setCompanyName] = useState("");
   const dispatch = useDispatch();
   const loadingBarRef = useContext(LoadingBarContext);
+
   const registerNewCompany = async () => {
     try {
       loadingBarRef.current.continuousStart();
@@ -22,9 +23,7 @@ const CompanyCreate = () => {
         `${COMPANY_API_END_POINT}/register`,
         { companyName },
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           withCredentials: true,
         }
       );
@@ -41,17 +40,17 @@ const CompanyCreate = () => {
       loadingBarRef.current.complete();
     }
   };
+
   return (
-    <div>
-      <div className="max-w-4xl mx-auto">
+    <div className="px-4">
+      <div className="max-w-4xl mx-auto my-10">
         <div className="my-10">
           <h1 className="text-2xl font-bold">Your Company Name</h1>
           <p className="text-gray-500">
-            What would you like to give your company name? you can change this
+            What would you like to give your company name? You can change this
             later.
           </p>
         </div>
-
         <Label>Company Name</Label>
         <Input
           type="text"
@@ -59,7 +58,7 @@ const CompanyCreate = () => {
           placeholder="JobHunt, Microsoft etc."
           onChange={(e) => setCompanyName(e.target.value)}
         />
-        <div className="flex items-center gap-2 my-10">
+        <div className="flex flex-col items-center gap-2 my-10 sm:flex-row">
           <Button
             variant="outline"
             onClick={() => navigate("/admin/companies")}

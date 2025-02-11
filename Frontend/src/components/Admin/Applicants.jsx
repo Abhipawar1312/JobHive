@@ -29,13 +29,13 @@ const Applicants = () => {
       }
     };
     fetchAllApplicants();
-  }, []);
+  }, [params.id, dispatch, loadingBarRef]);
 
   return (
-    <div>
+    <div className="px-4">
       <div className="mx-auto max-w-7xl">
         <h1 className="my-5 text-xl font-bold">
-          Applicants {applicants?.applications?.length}
+          Applicants ({applicants?.applications?.length})
         </h1>
         <ApplicantsTable />
       </div>

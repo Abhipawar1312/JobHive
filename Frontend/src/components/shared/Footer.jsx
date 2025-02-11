@@ -2,14 +2,13 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="py-8 border-t border-t-gray-200">
-      <div className="container px-4 mx-auto">
+    <footer className="px-4 py-8 border-t border-t-gray-200">
+      <div className="container mx-auto">
         <div className="flex flex-col items-center justify-between md:flex-row">
-          <div className="mb-4 md:mb-0">
+          <div className="mb-4 text-center md:mb-0 md:text-left">
             <h2 className="text-xl font-bold">Job Hunt</h2>
             <p className="text-sm">© 2024 Your Company. All rights reserved.</p>
           </div>
-
           <div className="flex mt-4 space-x-4 md:mt-0">
             <a
               href="https://facebook.com"

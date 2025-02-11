@@ -22,6 +22,7 @@ const CompaniesTable = () => {
   const navigate = useNavigate();
   const loadingBarRef = useContext(LoadingBarContext);
   const [filterCompany, setFilterCompany] = useState(companies);
+
   useEffect(() => {
     loadingBarRef.current.continuousStart();
     const filteredCompany =
@@ -34,16 +35,17 @@ const CompaniesTable = () => {
           ?.toLowerCase()
           .includes(searchCompanyByText.toLowerCase());
       });
-    loadingBarRef.current.complete();
     setFilterCompany(filteredCompany);
-  }, [companies, searchCompanyByText]);
+    loadingBarRef.current.complete();
+  }, [companies, searchCompanyByText, loadingBarRef]);
+
   return (
-    <div>
+    <div className="overflow-x-auto">
       <Table>
         <TableCaption>A list of Your Recent Registered Companies</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>logo</TableHead>
+            <TableHead>Logo</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Date</TableHead>
             <TableHead className="text-right">Action</TableHead>
@@ -51,10 +53,10 @@ const CompaniesTable = () => {
         </TableHeader>
         <TableBody>
           {filterCompany?.map((company) => (
-            <tr>
+            <tr key={company._id}>
               <TableCell>
                 <Avatar>
-                  <AvatarImage src={company?.logo} />
+                  <AvatarImage src={company?.logo} alt={company?.name} />
                 </Avatar>
               </TableCell>
               <TableCell>{company?.name}</TableCell>
