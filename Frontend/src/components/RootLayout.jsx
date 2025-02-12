@@ -19,7 +19,7 @@ const RootLayout = () => {
               minHeight: "100vh",
             }}
           >
-            <Loader />
+            <Loader className="animate-spin" />
           </div>
         }
       >
