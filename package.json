@@ -2,17 +2,17 @@
   "name": "job-portal",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "backend/index.js",
   "scripts": {
     "dev": "nodemon backend/index.js",
-    "build":"npm install && npm install --prefix Frontend && npm run build --prefix Frontend",
+    "build": "npm install && npm install --prefix Frontend && npm run build --prefix Frontend",
     "start": "nodemon backend/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-   "bcryptjs": "^2.4.3",
+    "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
