@@ -15,7 +15,7 @@ const useGetAllSavedJobs = () => {
         });
         // If the API call is successful, dispatch the data to the Redux store.
         if (res.data.success) {
-          console.log(res.data.savedJobs);
+        
           dispatch(setAllSavedJobs(res.data.savedJobs));
         }
       } catch (error) {

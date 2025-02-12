@@ -6,7 +6,7 @@ import { SavedJob } from "../models/savedJobs.model.js";
 export const postJob = async (req, res) => {
     try {
         const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
-        // console.log(title, description, requirements, salary, location, jobType, experience, position, companyId)
+
         const userId = req.id;
         if (!title || !description || !requirements || !salary || !location || !jobType || !experience || !position || !companyId) {
             return res.status(400).json({
@@ -172,7 +172,7 @@ export const updateJob = async (req, res) => {
             company: companyId ? new mongoose.Types.ObjectId(companyId) : undefined
         };
 
-        // console.log(updateData);
+
 
         const job = await Job.findByIdAndUpdate(req.params.id, updateData, { new: true });
 

@@ -48,17 +48,17 @@ const JobDescription = () => {
   };
 
   useEffect(() => {
-    console.log("useEffect triggered, jobId:", jobId, "user id:", user?.id);
+   
     const fetchSingleJob = async () => {
       try {
-        console.log("Starting axios request");
+       
         loadingBarRef.current.continuousStart();
         const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
           withCredentials: true,
         });
-        console.log("Axios response received:", res.data);
+        
         if (res.data.success) {
-          console.log("Job data:", res.data.job);
+        
           dispatch(setSingleJob(res.data.job));
           setIsApplied(
             res.data.job.applications.some(

@@ -11,7 +11,6 @@ const SavedJobs = () => {
   // Fallback to empty array if allSavedJobs is undefined
   const savedJobs = allSavedJobs || [];
 
-  console.log(savedJobs);
 
   return (
     <div className="px-4">

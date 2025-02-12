@@ -12,7 +12,7 @@ const Browse = () => {
   useGetAllJobs();
   useGetAllSavedJobs();
   const { allJobs } = useSelector((store) => store.job);
-  console.log(allJobs);
+
   const loadingBarRef = useContext(LoadingBarContext);
   const dispatch = useDispatch();
 

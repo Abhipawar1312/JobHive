@@ -16,7 +16,7 @@ export const register = async (req, res) => {
         }
 
         const file = req.file;
-        // console.log(req.file); 
+
 
         if (!file) {
             return res.status(400).json({
@@ -25,8 +25,7 @@ export const register = async (req, res) => {
             });
         }
 
-        // Logging the file object to debug
-        // console.log(file);
+
 
         // Convert file to Data URI and upload to Cloudinary
         const fileUri = getDataUri(file);
