@@ -77,12 +77,12 @@ const Navbar = () => {
           {!user || user.role === "student" ? (
             <Link to="/">
               <h1 className="text-2xl font-bold cursor-pointer">
-                Job<span className="text-[#F83002]">Portal</span>
+                Job<span className="text-[#F83002]">Hive</span>
               </h1>
             </Link>
           ) : (
             <h1 className="text-2xl font-bold">
-              Job<span className="text-[#F83002]">Portal</span>
+              Job<span className="text-[#F83002]">Hive</span>
             </h1>
           )}
         </div>
