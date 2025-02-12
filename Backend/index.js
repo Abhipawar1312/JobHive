@@ -21,6 +21,7 @@ app.use(cookieParser());
 const corsOptions = {
     origin: 'https://job-portal-w3va.onrender.com',
     credentials: true
+
 }
 
 app.use(cors(corsOptions));
