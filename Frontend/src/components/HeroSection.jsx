@@ -37,7 +37,7 @@ const HeroSection = () => {
     <div className="px-4 text-center">
       <div className="flex flex-col gap-5 my-10">
         <span className="mx-auto px-4 py-2 bg-gray-100 rounded-full text-[#F83002] font-medium">
-          No. 1 Job Hunt Website
+          No. 1 JobHive Website
         </span>
         <h1 className="text-3xl font-bold md:text-5xl">
           Search, Apply & <br /> Get Your{" "}
