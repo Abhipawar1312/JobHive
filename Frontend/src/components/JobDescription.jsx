@@ -48,17 +48,14 @@ const JobDescription = () => {
   };
 
   useEffect(() => {
-   
     const fetchSingleJob = async () => {
       try {
-       
         loadingBarRef.current.continuousStart();
         const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
           withCredentials: true,
         });
-        
+
         if (res.data.success) {
-        
           dispatch(setSingleJob(res.data.job));
           setIsApplied(
             res.data.job.applications.some(
@@ -79,15 +76,20 @@ const JobDescription = () => {
     <div className="px-4 mx-auto my-10 max-w-7xl">
       <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
         <div>
-          <h1 className="text-xl font-bold">{singleJob?.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {singleJob?.company?.name}
+          </h1>
+          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mt-1">
+            {singleJob?.title}
+          </h3>
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <Badge className="font-bold text-blue-700" variant="ghost">
               {singleJob?.position} Positions
             </Badge>
-            <Badge className="text-[#F83002] font-bold" variant="ghost">
+            <Badge className="font-bold text-red-600" variant="ghost">
               {singleJob?.jobType}
             </Badge>
-            <Badge className="text-[#7209B7] font-bold" variant="ghost">
+            <Badge className="font-bold text-purple-700" variant="ghost">
               {singleJob?.salary} LPA
             </Badge>
           </div>
@@ -95,71 +97,67 @@ const JobDescription = () => {
         <Button
           onClick={isApplied ? null : applyJobHandler}
           disabled={isApplied}
-          className={`rounded-lg ${
+          className={`rounded-lg px-6 py-2 transition-colors duration-200 ${
             isApplied
-              ? "bg-gray-600 cursor-not-allowed"
-              : "bg-[#7209b7] hover:bg-[#5f32ad]"
+              ? "bg-gray-500 cursor-not-allowed"
+              : "bg-purple-700 hover:bg-purple-600"
           }`}
         >
-          {isApplied ? "Already applied" : "Apply Now"}
+          {isApplied ? "Already Applied" : "Apply Now"}
         </Button>
       </div>
-      <h1 className="py-4 font-medium border-b-2 border-b-gray-300">
+
+      <h3 className="text-xl font-medium text-gray-800 dark:text-gray-200 mt-8 border-b border-gray-300 dark:border-gray-700 pb-2">
         Job Description
-      </h1>
-      <div className="my-4 space-y-3">
-        <h1 className="font-bold">
-          Role:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.title}
-          </span>
-        </h1>
-        <h1 className="font-bold">
-          Location:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.location}
-          </span>
-        </h1>
-        <h1 className="font-bold">
-          Description:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.description}
-          </span>
-        </h1>
-        {/* <h1 className="font-bold">
-          Requirements:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.requirements?.join(", ")}
-          </span>
-        </h1> */}
-        <MDEditor.Markdown
-          source={singleJob?.requirements}
-          className="bg-transparent sm:text-lg md-editor-container" // add global ul styles - tutorial
-        />
-        <h1 className="font-bold">
-          Experience:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.experienceLevel} yrs
-          </span>
-        </h1>
-        <h1 className="font-bold">
-          Salary:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.salary} LPA
-          </span>
-        </h1>
-        <h1 className="font-bold">
-          Total Applicants:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.applications?.length}
-          </span>
-        </h1>
-        <h1 className="font-bold">
-          Posted Date:{" "}
-          <span className="pl-4 font-normal text-gray-800 dark:text-white">
-            {singleJob?.createdAt?.split("T")[0]}
-          </span>
-        </h1>
+      </h3>
+
+      {/* Job Details */}
+      <div className="mt-6 space-y-4 text-gray-800 dark:text-gray-200">
+        {/* Role */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Role: </span>
+          {singleJob?.title}
+        </p>
+        {/* Location */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Location: </span>
+          {singleJob?.location}
+        </p>
+        {/* Description */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Description: </span>
+          {singleJob?.description}
+        </p>
+
+        {/* Requirements - Markdown */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Requirements: </span>
+          <MDEditor.Markdown
+            source={singleJob?.requirements}
+            className="bg-transparent sm:text-lg md-editor-container"
+          />
+        </p>
+
+        {/* Experience */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Experience: </span>
+          {singleJob?.experienceLevel} yrs
+        </p>
+        {/* Salary */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Salary: </span>
+          {singleJob?.salary} LPA
+        </p>
+        {/* Total Applicants */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Total Applicants: </span>
+          {singleJob?.applications?.length}
+        </p>
+        {/* Posted Date */}
+        <p className="text-base md:text-lg leading-relaxed">
+          <span className="font-semibold">Posted Date: </span>
+          {singleJob?.createdAt?.split("T")[0]}
+        </p>
       </div>
     </div>
   );

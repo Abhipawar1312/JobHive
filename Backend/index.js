@@ -19,7 +19,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const corsOptions = {
-    origin: 'https://jobhive-m79b.onrender.com',
+    // origin: 'https://jobhive-m79b.onrender.com',
+    origin: 'http://localhost:5173',
     credentials: true
 
 }

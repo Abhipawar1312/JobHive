@@ -121,7 +121,7 @@ const Signup = () => {
             <Label>Phone Number</Label>
             <Input
               type="number"
-              placeholder="8978686895"
+              placeholder="8291579474"
               {...register("phoneNumber", {
                 required: "Phone Number is required",
                 pattern: {

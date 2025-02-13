@@ -181,6 +181,7 @@ const PostJobs = () => {
 
         {/* Requirements with MDEditor */}
         <div className="md-editor-container">
+          <Label>Requirements</Label>
           <Controller
             control={control}
             name="requirements"

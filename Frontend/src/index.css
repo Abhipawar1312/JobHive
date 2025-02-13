@@ -65,19 +65,28 @@
   }
 }
 
-.md-editor-container .wmde-markdown,  /* For older versions */
-.md-editor-container .wmde-preview,   /* If your version uses this */
+.md-editor-container .wmde-markdown, /* For older versions */
+.md-editor-container .wmde-preview,  /* For newer versions */
 .md-editor-container ul {
   list-style: disc !important;
   padding-left: 20px;
 }
 
 .md-editor-container {
-  background: transparent !important; /* Removes background */
+  background: transparent !important;
+  /* Set text color explicitly */
+  color: hsl(var(--foreground)) !important;
 }
 
 .md-editor-container pre,
 .md-editor-container code,
 .md-editor-container blockquote {
-  background: transparent !important; /* Ensures no other elements retain background */
+  background: transparent !important;
+}
+
+/* 5. Force bullet color to match text color */
+@layer base {
+  .md-editor-container ul li::marker {
+    color: hsl(var(--foreground)) !important;
+  }
 }
