@@ -27,11 +27,11 @@ const Job = ({ job }) => {
     return Math.floor(timeDifference / (1000 * 60 * 60 * 24));
   };
 
-  const handleSaveToggle = async () => {
+  const handleSaveToggle = async (e) => {
+    e.stopPropagation();
     setLoading(true);
     try {
       if (!isSaved) {
-        // Save job API call
         const response = await axios.post(
           `${SAVEDJOB_API_END_POINT}/save`,
           { jobId: job._id },
@@ -42,7 +42,6 @@ const Job = ({ job }) => {
           dispatch(addSavedJob({ job }));
         }
       } else {
-        // Unsave job API call
         const response = await axios.delete(
           `${SAVEDJOB_API_END_POINT}/unsave/${job._id}`,
           { withCredentials: true }
@@ -61,57 +60,110 @@ const Job = ({ job }) => {
     setLoading(false);
   };
 
+  const handleDetailsClick = (e) => {
+    e.stopPropagation();
+    navigate(`/description/${job?._id}`);
+  };
+
   return (
-    <div className="p-5 border border-gray-100 rounded-md h-auto md:h-[400px] shadow-xl flex flex-col">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500 dark:text-white">
-          {daysAgoFunction(job?.createdAt) === 0
-            ? "Today"
-            : `${daysAgoFunction(job?.createdAt)} days ago`}
-        </p>
-      </div>
-      <div className="flex items-center gap-2 my-2">
-        <Button className="p-6" variant="outline" size="icon">
+    <div
+      onClick={() => navigate(`/description/${job._id}`)}
+      className="p-6 border border-gray-200 rounded-lg shadow-lg hover:shadow-xl 
+                 transition-all duration-300 cursor-pointer bg-white 
+                 dark:bg-gray-800 hover:border-blue-200 flex flex-col h-full"
+    >
+      {/* Top Section: Company Info */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            {job?.company?.name}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+            <svg
+              className="w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            {job?.location}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {daysAgoFunction(job?.createdAt) === 0
+              ? "Today"
+              : `${daysAgoFunction(job?.createdAt)} days ago`}
+          </p>
+        </div>
+        {/* Company Logo */}
+        <Button
+          onClick={(e) => e.stopPropagation()}
+          className="p-2"
+          variant="outline"
+          size="icon"
+        >
           <Avatar>
             <AvatarImage src={job?.company?.logo} />
           </Avatar>
         </Button>
-        <div>
-          <h1 className="text-lg font-medium">{job?.company?.name}</h1>
-          <p className="text-sm text-gray-500">{job?.location}</p>
-        </div>
       </div>
-      <div className="flex-grow">
-        <h1 className="my-2 text-lg font-bold line-clamp-1">{job?.title}</h1>
-        <p className="text-sm text-gray-600 line-clamp-5 md:line-clamp-5 dark:text-white">
+
+      {/* Middle Section: Title & Description */}
+      <div className="mb-4 flex-grow">
+        <h1 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-2 line-clamp-1">
+          {job?.title}
+        </h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
           {job?.description}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2 mt-4">
-        <Badge className="font-bold text-blue-700" variant="ghost">
-          {job?.position} Positions
-        </Badge>
-        <Badge className="text-[#F83002] font-bold" variant="ghost">
-          {job?.jobType}
-        </Badge>
-        <Badge className="text-[#7209B7] font-bold" variant="ghost">
-          {job?.salary} LPA
-        </Badge>
-      </div>
-      <div className="flex flex-wrap items-center gap-4 mt-4">
-        <Button
-          onClick={() => navigate(`/description/${job?._id}`)}
-          variant="outline"
-        >
-          Details
-        </Button>
-        <Button
-          onClick={handleSaveToggle}
-          className={`${isSaved ? "bg-red-500" : "bg-[#7209B7]"} text-white`}
-          disabled={loading}
-        >
-          {loading ? "Loading..." : isSaved ? "Unsave Job" : "Save For Later"}
-        </Button>
+
+      {/* Bottom Section: Badges & Actions */}
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            className="bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300"
+            variant="secondary"
+          >
+            {job?.position} Positions
+          </Badge>
+          <Badge
+            className="bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300"
+            variant="secondary"
+          >
+            {job?.jobType}
+          </Badge>
+          <Badge
+            className="bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300"
+            variant="secondary"
+          >
+            {job?.salary} LPA
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 mt-4">
+          <Button onClick={handleDetailsClick} variant="outline">
+            Details
+          </Button>
+          <Button
+            onClick={handleSaveToggle}
+            className={`${isSaved ? "bg-red-500" : "bg-[#7209B7]"} text-white`}
+            disabled={loading}
+          >
+            {loading ? "Loading..." : isSaved ? "Unsave Job" : "Save For Later"}
+          </Button>
+        </div>
       </div>
     </div>
   );
