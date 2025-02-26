@@ -12,7 +12,11 @@ import { motion } from "framer-motion";
 
 const HeroSection = () => {
   const [placeholder] = useTypewriter({
-    words: ["Find Your Dream Jobs"],
+    words: [
+      "Search for job titles...",
+      "Find companies hiring now...",
+      "Discover your next opportunity...",
+    ],
     loop: {}, // Infinite loop
     typeSpeed: 120,
     delaySpeed: 80,
