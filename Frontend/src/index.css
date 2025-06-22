@@ -90,26 +90,3 @@
     color: hsl(var(--foreground)) !important;
   }
 }
-
-/* input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
-  box-shadow: 0 0 0px 1000px white inset !important;
-  -webkit-text-fill-color: #000 !important;
-  transition: background-color 5000s ease-in-out 0s;
-} */
-
-/* Light mode */
-input:-webkit-autofill {
-  background-color: transparent !important;
-  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
-  -webkit-text-fill-color: #000 !important;
-  transition: background-color 9999s ease-in-out 0s;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  input:-webkit-autofill {
-    -webkit-text-fill-color: #fff !important;
-  }
-}
-
