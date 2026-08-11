@@ -12,4 +12,3 @@ router.route("/status/:id/update").post(isAuthenticated, updateStatus);
 
 export default router;
 
-//3:04:11
