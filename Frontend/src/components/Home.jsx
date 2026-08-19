@@ -14,8 +14,10 @@ const Home = () => {
   const loadingBarRef = useContext(LoadingBarContext);
   const navigate = useNavigate();
   useEffect(() => {
-    loadingBarRef.current.continuousStart();
-    loadingBarRef.current.complete();
+    if (loadingBarRef?.current) {
+      loadingBarRef.current.continuousStart();
+      loadingBarRef.current.complete();
+    }
     if (user?.role === "recruiter") {
       navigate("/admin/companies");
     }

@@ -28,10 +28,10 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   const searchJobHandler = () => {
-    loadingBarRef.current.continuousStart();
+    if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
     dispatch(setSearchedQuery(query));
     navigate("/browse");
-    loadingBarRef.current.complete();
+    if (loadingBarRef?.current) loadingBarRef.current.complete();
   };
 
   const handleKeyDown = (e) => {

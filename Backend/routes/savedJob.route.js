@@ -1,16 +1,12 @@
 import express from "express";
-import { saveJob, unsaveJob, getSavedJobs } from "../Controllers/savedJob.controller.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
+import { getSavedJobs, saveJob, unsaveJob, updateSavedJobNotes } from "../Controllers/savedJob.controller.js";
 
 const router = express.Router();
 
-// Route to save a job
-router.post("/save", isAuthenticated, saveJob);
-
-// Route to unsave a job (jobId in URL param)
-router.delete("/unsave/:jobId", isAuthenticated, unsaveJob);
-
-// Route to get all saved jobs for the current user
-router.get("/list", isAuthenticated, getSavedJobs);
+router.route("/").get(isAuthenticated, getSavedJobs);
+router.route("/save").post(isAuthenticated, saveJob);
+router.route("/unsave/:jobId").delete(isAuthenticated, unsaveJob);
+router.route("/notes/:jobId").put(isAuthenticated, updateSavedJobNotes);
 
 export default router;

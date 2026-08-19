@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "../ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Building2, Globe, MapPin, Image as ImageIcon, FileText } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ const CompanySetup = () => {
       formData.append("file", data.file[0]);
     }
     try {
-      loadingBarRef.current.continuousStart();
+      if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
       setLoading(true);
       const res = await axios.put(
         `${COMPANY_API_END_POINT}/update/${id}`,
@@ -68,162 +68,169 @@ const CompanySetup = () => {
         }
       );
       if (res.data.success) {
-        toast.success(res.data.message);
+        toast.success(res.data.message || "Company updated successfully!");
         navigate("/admin/companies");
       }
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "An error occurred");
+      toast.error(error.response?.data?.message || "Failed to update company.");
     } finally {
-      loadingBarRef.current.complete();
+      if (loadingBarRef?.current) loadingBarRef.current.complete();
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl px-4 py-8 mx-auto">
-      {/* Header with Back button and title */}
-      <div className="flex items-center justify-between mb-8">
-        <Button
-          onClick={() => navigate("/admin/companies")}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft />
-          Back
-        </Button>
-        <h1 className="text-3xl font-bold">Company Setup</h1>
-        {/* An empty div to balance the flex layout if needed */}
-        <div className="w-10" />
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl transition-all duration-300">
+        
+        {/* Back Link & Header */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+          <button
+            type="button"
+            onClick={() => navigate("/admin/companies")}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Companies
+          </button>
+          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+            Recruiter Portal
+          </span>
+        </div>
+
+        {/* Top Icon & Title */}
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto mb-3 border border-purple-100 dark:border-purple-900 shadow-sm">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Company Profile Setup</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Complete your company profile, branding logo, and contact details.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Company Name */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Company Name</Label>
+              <div className="relative">
+                <Building2 className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="e.g. Acme Corporation"
+                  {...register("name", { required: "Company name is required" })}
+                  className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              {errors.name && (
+                <p className="text-[11px] text-red-500 font-medium">{errors.name.message}</p>
+              )}
+            </div>
+
+            {/* Website */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Website URL</Label>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="https://example.com"
+                  {...register("website", {
+                    required: "Website is required",
+                    pattern: {
+                      value: /^(https?:\/\/)?([\w\d\-_]+\.+\S+)+$/,
+                      message: "Please enter a valid URL",
+                    },
+                  })}
+                  className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              {errors.website && (
+                <p className="text-[11px] text-red-500 font-medium">{errors.website.message}</p>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Headquarters / Location</Label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="e.g. Mumbai, India / Remote"
+                  {...register("location", { required: "Location is required" })}
+                  className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              {errors.location && (
+                <p className="text-[11px] text-red-500 font-medium">{errors.location.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Company Description</Label>
+            <textarea
+              rows={3}
+              placeholder="Tell candidates about your company mission, culture, and team..."
+              {...register("description", { required: "Description is required" })}
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 p-3 text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none leading-relaxed"
+            />
+            {errors.description && (
+              <p className="text-[11px] text-red-500 font-medium">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* Logo Upload with Existing Thumbnail */}
+          <div className="space-y-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-purple-600" /> Company Logo
+              </Label>
+              {singleCompany?.logo && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400">Current Logo:</span>
+                  <img src={singleCompany.logo} alt="Company logo" className="w-6 h-6 rounded-md object-cover border" />
+                </div>
+              )}
+            </div>
+            <Input
+              type="file"
+              accept="image/*"
+              {...register("file")}
+              className="text-xs rounded-xl h-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 cursor-pointer"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/admin/companies")}
+              className="flex-1 h-11 rounded-xl text-xs font-semibold border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1 h-11 bg-[#6A38C2] hover:bg-[#5b30a6] text-white rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 transition-all duration-200 cursor-pointer"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...
+                </div>
+              ) : (
+                "Save & Update Profile"
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Company Name */}
-        <div>
-          <Label>Company Name</Label>
-          <Input
-            type="text"
-            placeholder="Enter company name"
-            {...register("name", { required: "Company name is required" })}
-            className="mt-1"
-          />
-          {errors.name && (
-            <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
-          )}
-        </div>
-
-        {/* Description */}
-        <div>
-          <Label>Description</Label>
-          <Input
-            type="text"
-            placeholder="Enter description"
-            {...register("description", {
-              required: "Description is required",
-            })}
-            className="mt-1"
-          />
-          {errors.description && (
-            <p className="mt-1 text-xs text-red-500">
-              {errors.description.message}
-            </p>
-          )}
-        </div>
-
-        {/* Website */}
-        <div>
-          <Label>Website</Label>
-          <Input
-            type="text"
-            placeholder="Enter website URL"
-            {...register("website", {
-              required: "Website is required",
-              pattern: {
-                value: /^(https?:\/\/)?([\w\d\-_]+\.+\S+)+$/,
-                message: "Please enter a valid URL",
-              },
-            })}
-            className="mt-1"
-          />
-          {errors.website && (
-            <p className="mt-1 text-xs text-red-500">
-              {errors.website.message}
-            </p>
-          )}
-        </div>
-
-        {/* Location */}
-        <div>
-          <Label>Location</Label>
-          <Input
-            type="text"
-            placeholder="Enter location"
-            {...register("location", { required: "Location is required" })}
-            className="mt-1"
-          />
-          {errors.location && (
-            <p className="mt-1 text-xs text-red-500">
-              {errors.location.message}
-            </p>
-          )}
-        </div>
-
-        {/* Logo */}
-        <div>
-          <Label>Logo</Label>
-          <Input
-            type="file"
-            accept="image/*"
-            {...register("file", {
-              required: "Logo is required",
-              validate: {
-                fileType: (value) => {
-                  if (value && value.length > 0) {
-                    const allowedTypes = [
-                      "image/jpeg",
-                      "image/png",
-                      "image/gif",
-                    ];
-                    return (
-                      allowedTypes.includes(value[0].type) ||
-                      "Only JPEG, PNG, or GIF images are allowed"
-                    );
-                  }
-                  return true;
-                },
-                fileSize: (value) => {
-                  if (value && value.length > 0) {
-                    const maxSize = 1024 * 1024; // 1MB
-                    return (
-                      value[0].size <= maxSize ||
-                      "File size must be less than 1MB"
-                    );
-                  }
-                  return true;
-                },
-              },
-            })}
-            className="mt-1"
-          />
-          {errors.file && (
-            <p className="mt-1 text-xs text-red-500">{errors.file.message}</p>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <div>
-          {loading ? (
-            <Button className="w-full" disabled>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please wait...
-            </Button>
-          ) : (
-            <Button type="submit" className="w-full">
-              Update
-            </Button>
-          )}
-        </div>
-      </form>
     </div>
   );
 };

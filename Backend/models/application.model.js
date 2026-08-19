@@ -13,9 +13,30 @@ const applicationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "accepted", "rejected"],
+        enum: ["pending", "reviewing", "shortlisted", "interview", "accepted", "rejected"],
         default: "pending"
-    }
+    },
+    atsScore: {
+        type: Number,
+        default: null
+    },
+    atsFeedback: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    interviewDetails: {
+        date: { type: Date },
+        meetingUrl: { type: String },
+        notes: { type: String }
+    },
+    recruiterNotes: { type: String },
+    timeline: [
+        {
+            status: { type: String },
+            updatedAt: { type: Date, default: Date.now },
+            comment: { type: String }
+        }
+    ]
 }, { timestamps: true });
 
 export const Application = mongoose.model("Application", applicationSchema);

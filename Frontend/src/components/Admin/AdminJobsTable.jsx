@@ -21,7 +21,7 @@ const AdminJobsTable = () => {
   const [filterJobs, setFilterJobs] = useState(allAdminJobs);
 
   useEffect(() => {
-    loadingBarRef.current.continuousStart();
+    if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
     const filteredJobs =
       allAdminJobs.length >= 0 &&
       allAdminJobs.filter((job) => {
@@ -31,12 +31,12 @@ const AdminJobsTable = () => {
         return (
           job?.title?.toLowerCase().includes(searchJobByText.toLowerCase()) ||
           job?.company?.name
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(searchJobByText.toLowerCase())
         );
       });
     setFilterJobs(filteredJobs);
-    loadingBarRef.current.complete();
+    if (loadingBarRef?.current) loadingBarRef.current.complete();
   }, [allAdminJobs, searchJobByText, loadingBarRef]);
 
   return (
@@ -53,36 +53,41 @@ const AdminJobsTable = () => {
         </TableHeader>
         <TableBody>
           {filterJobs?.map((job) => (
-            <tr key={job._id}>
-              <TableCell>{job?.company?.name}</TableCell>
-              <TableCell>{job?.title}</TableCell>
-              <TableCell>{job?.createdAt.split("T")[0]}</TableCell>
-              <TableCell className="text-right cursor-pointer">
+            <TableRow
+              key={job._id}
+              className="border-b border-gray-100 dark:border-gray-800/80 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-colors duration-150"
+            >
+              <TableCell className="font-semibold text-gray-900 dark:text-gray-100">{job?.company?.name}</TableCell>
+              <TableCell className="text-gray-700 dark:text-gray-300">{job?.title}</TableCell>
+              <TableCell className="text-xs text-gray-500 font-medium">{job?.createdAt.split("T")[0]}</TableCell>
+              <TableCell className="text-right">
                 <Popover>
-                  <PopoverTrigger>
-                    <MoreHorizontal />
+                  <PopoverTrigger asChild>
+                    <button className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors cursor-pointer">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-32">
+                  <PopoverContent className="w-36 p-1.5 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
                     <div
                       onClick={() => navigate(`/admin/jobs/create/${job._id}`)}
-                      className="flex items-center gap-2 cursor-pointer w-fit"
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 text-xs font-medium transition-colors"
                     >
-                      <Edit2 className="w-4" />
+                      <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>
                     </div>
                     <div
                       onClick={() =>
                         navigate(`/admin/jobs/${job._id}/applicants`)
                       }
-                      className="flex items-center gap-2 mt-2 cursor-pointer w-fit"
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 text-xs font-medium transition-colors"
                     >
-                      <Eye className="w-4" />
+                      <Eye className="w-3.5 h-3.5" />
                       <span>Applicants</span>
                     </div>
                   </PopoverContent>
                 </Popover>
               </TableCell>
-            </tr>
+            </TableRow>
           ))}
         </TableBody>
       </Table>

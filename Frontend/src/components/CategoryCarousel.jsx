@@ -17,10 +17,10 @@ const CategoryCarousel = () => {
   const loadingBarRef = useContext(LoadingBarContext);
 
   const searchJobHandler = (query) => {
-    loadingBarRef.current.continuousStart();
+    if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
     dispatch(setSearchedQuery(query));
     navigate("/browse");
-    loadingBarRef.current.complete();
+    if (loadingBarRef?.current) loadingBarRef.current.complete();
   };
 
   // Create a set of unique job titles (case-insensitive)
@@ -51,13 +51,12 @@ const CategoryCarousel = () => {
               key={index}
               className="px-2 basis-1/2 md:basis-1/3 lg:basis-1/6"
             >
-              <Button
+              <button
                 onClick={() => searchJobHandler(cat)}
-                variant="outline"
-                className="w-full rounded-full"
+                className="w-full py-2 px-3 rounded-full text-xs font-semibold border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-[#6A38C2] hover:text-white dark:hover:bg-[#6A38C2] dark:hover:text-white hover:border-[#6A38C2] shadow-sm transition-all duration-200 cursor-pointer truncate"
               >
                 {cat}
-              </Button>
+              </button>
             </CarouselItem>
           ))}
         </CarouselContent>

@@ -30,7 +30,21 @@ const jobSlice = createSlice({
         setSearchedQuery: (state, action) => {
             state.searchedQuery = action.payload;
         },
+        updateAppliedJobStatus: (state, action) => {
+            const { applicationId, status, timeline, interviewDetails } = action.payload;
+            state.allAppliedJobs = state.allAppliedJobs.map((app) => {
+                if (app._id === applicationId) {
+                    return {
+                        ...app,
+                        status: status || app.status,
+                        timeline: timeline || app.timeline,
+                        interviewDetails: interviewDetails !== undefined ? interviewDetails : app.interviewDetails,
+                    };
+                }
+                return app;
+            });
+        },
     }
 });
-export const { setAllJobs, setSingleJob, setAllAdminJobs, setSearchJobByText, setAllAppliedJobs, setSearchedQuery } = jobSlice.actions;
+export const { setAllJobs, setSingleJob, setAllAdminJobs, setSearchJobByText, setAllAppliedJobs, setSearchedQuery, updateAppliedJobStatus } = jobSlice.actions;
 export default jobSlice.reducer;

@@ -24,6 +24,9 @@ import { USER_API_END_POINT } from "@/utils/constant";
 import { setUser } from "../redux/authSlice";
 import { clearSavedJobs } from "../redux/savedJobSlice";
 
+import NotificationBell from "./NotificationBell";
+import { LayoutDashboard } from "lucide-react";
+
 const Navbar = () => {
   const { user } = useSelector((store) => store.auth);
   const dispatch = useDispatch();
@@ -33,21 +36,21 @@ const Navbar = () => {
 
   const logoutHandler = async () => {
     try {
-      loadingBarRef.current.continuousStart();
+      if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
       const res = await axios.get(`${USER_API_END_POINT}/logout`, {
         withCredentials: true,
       });
       if (res.data.success) {
-        dispatch(setUser(null));
-        dispatch(clearSavedJobs());
-        navigate("/");
         toast.success(res.data.message);
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.response.data.message);
+      console.warn("Backend logout request failed, logging out locally:", error.message);
     } finally {
-      loadingBarRef.current.complete();
+      dispatch(setUser(null));
+      dispatch(clearSavedJobs());
+      if (loadingBarRef?.current) loadingBarRef.current.complete();
+      navigate("/login");
+      toast.success("Logged out successfully");
     }
   };
 
@@ -57,10 +60,15 @@ const Navbar = () => {
       return (
         <>
           <li>
-            <Link to="/admin/companies">Companies</Link>
+            <Link to="/admin/dashboard" className="flex items-center gap-1 hover:text-[#6A38C2] transition-colors">
+              <LayoutDashboard className="w-4 h-4" /> Dashboard
+            </Link>
           </li>
           <li>
-            <Link to="/admin/jobs">Jobs</Link>
+            <Link to="/admin/companies" className="hover:text-[#6A38C2] transition-colors">Companies</Link>
+          </li>
+          <li>
+            <Link to="/admin/jobs" className="hover:text-[#6A38C2] transition-colors">Jobs</Link>
           </li>
         </>
       );
@@ -68,13 +76,13 @@ const Navbar = () => {
     return (
       <>
         <li>
-          <Link to="/">Home</Link>
+          <Link to="/" className="hover:text-[#6A38C2] transition-colors">Home</Link>
         </li>
         <li>
-          <Link to="/jobs">Jobs</Link>
+          <Link to="/jobs" className="hover:text-[#6A38C2] transition-colors">Jobs</Link>
         </li>
         <li>
-          <Link to="/browse">Browse</Link>
+          <Link to="/browse" className="hover:text-[#6A38C2] transition-colors">Browse</Link>
         </li>
       </>
     );
@@ -92,14 +100,17 @@ const Navbar = () => {
               </h1>
             </Link>
           ) : (
-            <h1 className="text-2xl font-bold">
-              Job<span className="text-[#F83002]">Hive</span>
-            </h1>
+            <Link to="/admin/dashboard">
+              <h1 className="text-2xl font-bold cursor-pointer">
+                Job<span className="text-[#F83002]">Hive</span> <span className="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 ml-1">Recruiter</span>
+              </h1>
+            </Link>
           )}
         </div>
 
         {/* Mobile menu toggle icon (visible on small screens) */}
-        <div className="flex items-center gap-4 md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          {user && <NotificationBell />}
           <DarkMode />
           <button
             onClick={() => setOpen(!open)}
@@ -115,6 +126,7 @@ const Navbar = () => {
           <ul className="flex items-center gap-5 font-medium">
             {renderNavLinks()}
           </ul>
+          {user && <NotificationBell />}
           <DarkMode />
           {!user ? (
             <div className="flex items-center gap-2">

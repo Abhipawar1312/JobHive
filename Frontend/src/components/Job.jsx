@@ -68,14 +68,12 @@ const Job = ({ job }) => {
   return (
     <div
       onClick={() => navigate(`/description/${job._id}`)}
-      className="p-6 border border-gray-200 rounded-lg shadow-lg hover:shadow-xl 
-                 transition-all duration-300 cursor-pointer bg-white 
-                 dark:bg-gray-800 hover:border-blue-200 flex flex-col h-full"
+      className="p-6 border border-gray-200/80 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:border-purple-500/40 dark:hover:border-purple-500/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer bg-white dark:bg-gray-900 flex flex-col h-full"
     >
       {/* Top Section: Company Info */}
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {job?.company?.name}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
@@ -101,68 +99,70 @@ const Job = ({ job }) => {
             </svg>
             {job?.location}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 mt-1 font-medium">
             {daysAgoFunction(job?.createdAt) === 0
               ? "Today"
               : `${daysAgoFunction(job?.createdAt)} days ago`}
           </p>
         </div>
         {/* Company Logo */}
-        <Button
+        <div
           onClick={(e) => e.stopPropagation()}
-          className="p-2"
-          variant="outline"
-          size="icon"
+          className="p-1 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50"
         >
-          <Avatar>
+          <Avatar className="w-10 h-10">
             <AvatarImage src={job?.company?.logo} />
           </Avatar>
-        </Button>
+        </div>
       </div>
 
       {/* Middle Section: Title & Description */}
       <div className="mb-4 flex-grow">
-        <h1 className="text-lg font-bold text-blue-600 dark:text-blue-400 mb-2 line-clamp-1">
+        <h1 className="text-lg font-bold text-[#6A38C2] dark:text-purple-400 mb-1.5 line-clamp-1">
           {job?.title}
         </h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3 leading-relaxed">
           {job?.description}
         </p>
       </div>
 
       {/* Bottom Section: Badges & Actions */}
       <div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Badge
-            className="bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300"
-            variant="secondary"
+            className="bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg"
           >
             {job?.position} Positions
           </Badge>
           <Badge
-            className="bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300"
-            variant="secondary"
+            className="bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg"
           >
             {job?.jobType}
           </Badge>
           <Badge
-            className="bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300"
-            variant="secondary"
+            className="bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50 font-medium text-xs px-2.5 py-0.5 rounded-lg"
           >
             {job?.salary} LPA
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-4 mt-4">
-          <Button onClick={handleDetailsClick} variant="outline">
+        <div className="flex flex-wrap items-center gap-3 mt-4">
+          <button
+            onClick={handleDetailsClick}
+            className="text-xs font-semibold px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-[#6A38C2] hover:text-white dark:hover:bg-[#6A38C2] dark:hover:text-white hover:border-[#6A38C2] transition-all duration-200 shadow-sm cursor-pointer"
+          >
             Details
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSaveToggle}
-            className={`${isSaved ? "bg-red-500" : "bg-[#7209B7]"} text-white`}
             disabled={loading}
+            className={`text-xs font-semibold px-4 py-2 rounded-xl transition-all duration-200 shadow-sm cursor-pointer ${
+              isSaved
+                ? "bg-rose-500 hover:bg-rose-600 text-white"
+                : "bg-[#6A38C2] hover:bg-[#5b30a6] text-white hover:shadow-purple-500/20"
+            }`}
           >
             {loading ? "Loading..." : isSaved ? "Unsave Job" : "Save For Later"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

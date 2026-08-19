@@ -24,7 +24,7 @@ const CompaniesTable = () => {
   const [filterCompany, setFilterCompany] = useState(companies);
 
   useEffect(() => {
-    loadingBarRef.current.continuousStart();
+    if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
     const filteredCompany =
       companies.length >= 0 &&
       companies.filter((company) => {
@@ -36,7 +36,7 @@ const CompaniesTable = () => {
           .includes(searchCompanyByText.toLowerCase());
       });
     setFilterCompany(filteredCompany);
-    loadingBarRef.current.complete();
+    if (loadingBarRef?.current) loadingBarRef.current.complete();
   }, [companies, searchCompanyByText, loadingBarRef]);
 
   return (
@@ -53,33 +53,40 @@ const CompaniesTable = () => {
         </TableHeader>
         <TableBody>
           {filterCompany?.map((company) => (
-            <tr key={company._id}>
+            <TableRow
+              key={company._id}
+              className="border-b border-gray-100 dark:border-gray-800/80 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-colors duration-150"
+            >
               <TableCell>
-                <Avatar>
-                  <AvatarImage src={company?.logo} alt={company?.name} />
-                </Avatar>
+                <div className="w-10 h-10 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-1 flex items-center justify-center">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={company?.logo} alt={company?.name} />
+                  </Avatar>
+                </div>
               </TableCell>
-              <TableCell>{company?.name}</TableCell>
-              <TableCell>{company?.createdAt.split("T")[0]}</TableCell>
-              <TableCell className="text-right cursor-pointer">
+              <TableCell className="font-semibold text-gray-900 dark:text-gray-100">{company?.name}</TableCell>
+              <TableCell className="text-xs text-gray-500 font-medium">{company?.createdAt.split("T")[0]}</TableCell>
+              <TableCell className="text-right">
                 <Popover>
-                  <PopoverTrigger>
-                    <MoreHorizontal />
+                  <PopoverTrigger asChild>
+                    <button className="h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors cursor-pointer">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-32">
+                  <PopoverContent className="w-32 p-1.5 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
                     <div
                       onClick={() =>
                         navigate(`/admin/companies/${company?._id}`)
                       }
-                      className="flex items-center gap-2 cursor-pointer w-fit"
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-300 text-xs font-medium transition-colors"
                     >
-                      <Edit2 className="w-4" />
+                      <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>
                     </div>
                   </PopoverContent>
                 </Popover>
               </TableCell>
-            </tr>
+            </TableRow>
           ))}
         </TableBody>
       </Table>

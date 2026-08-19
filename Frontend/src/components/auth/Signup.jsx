@@ -9,7 +9,20 @@ import { USER_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading } from "../redux/authSlice";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { 
+    Loader2, 
+    Eye, 
+    EyeOff, 
+    UserPlus, 
+    Mail, 
+    Lock, 
+    User, 
+    Phone, 
+    Image as ImageIcon, 
+    UserCheck, 
+    Briefcase,
+    CheckCircle2
+} from "lucide-react";
 import { LoadingBarContext } from "../LoadingBarContext";
 
 const Signup = () => {
@@ -18,10 +31,12 @@ const Signup = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -29,9 +44,28 @@ const Signup = () => {
       email: "",
       phoneNumber: "",
       password: "",
-      role: "",
+      role: "student",
     },
   });
+
+  const selectedRole = watch("role");
+  const watchPassword = watch("password");
+
+  // Password strength helper
+  const getPasswordStrength = (pass) => {
+    if (!pass) return { score: 0, label: "", color: "" };
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    if (score <= 1) return { score: 1, label: "Weak", color: "bg-red-500", text: "text-red-500" };
+    if (score === 2 || score === 3) return { score: 2, label: "Medium", color: "bg-amber-500", text: "text-amber-500" };
+    return { score: 3, label: "Strong", color: "bg-emerald-500", text: "text-emerald-500" };
+  };
+
+  const strength = getPasswordStrength(watchPassword);
 
   const onSubmit = async (data) => {
     const formData = new FormData();
@@ -45,7 +79,7 @@ const Signup = () => {
     }
 
     try {
-      loadingBarRef.current.continuousStart();
+      if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
       dispatch(setLoading(true));
       const res = await axios.post(`${USER_API_END_POINT}/register`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -53,14 +87,14 @@ const Signup = () => {
       });
 
       if (res.data.success) {
+        toast.success(res.data.message || "Account created successfully! Please sign in.");
         navigate("/login");
-        toast.success(res.data.message);
       }
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "An error occurred");
+      toast.error(error.response?.data?.message || "Registration failed. Please check your details.");
     } finally {
-      loadingBarRef.current.complete();
+      if (loadingBarRef?.current) loadingBarRef.current.complete();
       dispatch(setLoading(false));
     }
   };
@@ -72,138 +106,189 @@ const Signup = () => {
   }, [user, navigate]);
 
   return (
-    <div className="px-4">
-      <div className="flex items-center justify-center mx-auto max-w-7xl">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full p-4 my-10 border border-gray-200 rounded-md sm:w-3/4 md:w-1/2"
-        >
-          <h1 className="mb-5 text-xl font-bold">Sign Up</h1>
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl transition-all duration-300">
+        
+        {/* Top Icon Header */}
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto mb-3 border border-purple-100 dark:border-purple-900 shadow-sm">
+            <UserPlus className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Create an Account</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Join JobHive to discover jobs or recruit top talent.
+          </p>
+        </div>
 
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Full Name */}
-          <div className="my-2">
-            <Label>Full Name</Label>
-            <Input
-              type="text"
-              placeholder="Full Name"
-              {...register("fullname", { required: "Full Name is required" })}
-            />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Full Name</Label>
+            <div className="relative">
+              <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Input
+                type="text"
+                placeholder="e.g. Abhishek Pawar"
+                {...register("fullname", { required: "Full Name is required" })}
+                className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+              />
+            </div>
             {errors.fullname && (
-              <p className="mt-1 text-sm text-red-500">
+              <p className="text-[11px] text-red-500 font-medium">
                 {errors.fullname.message}
               </p>
             )}
           </div>
 
-          {/* Email */}
-          <div className="my-2">
-            <Label>Email</Label>
-            <Input
-              type="email"
-              placeholder="abc@gmail.com"
-              {...register("email", {
-                required: "Email is required",
-                pattern: {
-                  value: /^\S+@\S+\.\S+$/,
-                  message: "Please enter a valid email",
-                },
-              })}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-500">
-                {errors.email.message}
-              </p>
-            )}
+          {/* Email & Phone Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Email Address</Label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="email"
+                  placeholder="name@example.com"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message: "Valid email required",
+                    },
+                  })}
+                  className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              {errors.email && (
+                <p className="text-[11px] text-red-500 font-medium">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Phone Number</Label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="tel"
+                  placeholder="9876543210"
+                  {...register("phoneNumber", {
+                    required: "Phone number is required",
+                    pattern: {
+                      value: /^[0-9]{10}$/,
+                      message: "Must be 10 digits",
+                    },
+                  })}
+                  className="pl-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                />
+              </div>
+              {errors.phoneNumber && (
+                <p className="text-[11px] text-red-500 font-medium">
+                  {errors.phoneNumber.message}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Phone Number */}
-          <div className="my-2">
-            <Label>Phone Number</Label>
-            <Input
-              type="number"
-              placeholder="8291579474"
-              {...register("phoneNumber", {
-                required: "Phone Number is required",
-                pattern: {
-                  value: /^[0-9]{10}$/,
-                  message: "Phone number must be exactly 10 digits",
-                },
-              })}
-            />
-            {errors.phoneNumber && (
-              <p className="mt-1 text-sm text-red-500">
-                {errors.phoneNumber.message}
-              </p>
+          {/* Password with Toggle & Strength */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Password</Label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                  pattern: {
+                    value:
+                      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^])[A-Za-z\d@$!%*?&#^]{8,}$/,
+                    message:
+                      "Must have 1 uppercase, 1 lowercase, 1 number & 1 special character",
+                  },
+                })}
+                className="pl-10 pr-10 text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 right-3.5 top-1/2 -translate-y-1/2 cursor-pointer"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {watchPassword && (
+              <div className="pt-1 space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-gray-400">Password Strength:</span>
+                  <span className={`font-bold ${strength.text}`}>{strength.label}</span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex gap-1">
+                  <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 1 ? strength.color : "bg-transparent"}`} />
+                  <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 2 ? strength.color : "bg-transparent"}`} />
+                  <div className={`h-full flex-1 rounded-full transition-all duration-300 ${strength.score >= 3 ? strength.color : "bg-transparent"}`} />
+                </div>
+              </div>
             )}
-          </div>
-
-          {/* Password with Toggle */}
-          <div className="relative my-2">
-            <Label>Password</Label>
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Abcd@1234"
-              {...register("password", {
-                required: "Password is required",
-                minLength: {
-                  value: 8,
-                  message: "Password must be at least 8 characters",
-                },
-                pattern: {
-                  value:
-                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^])[A-Za-z\d@$!%*?&#^]{8,}$/,
-                  message:
-                    "Password must have at least one uppercase letter, one lowercase letter, one digit, and one special character",
-                },
-              })}
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute text-gray-600 right-2 top-9"
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
             {errors.password && (
-              <p className="mt-1 text-sm text-red-500">
+              <p className="text-[11px] text-red-500 font-medium">
                 {errors.password.message}
               </p>
             )}
           </div>
 
-          {/* Role Radio Buttons */}
-          <div className="flex flex-col my-5">
-            <Label>Role</Label>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center space-x-2">
-                <Input
+          {/* Role Selection Pills */}
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Join As</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
+                selectedRole === "student"
+                  ? "border-[#6A38C2] bg-purple-50/50 dark:bg-purple-950/40 text-[#6A38C2] dark:text-purple-300 font-bold shadow-sm"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-medium hover:border-gray-300"
+              }`}>
+                <input
                   type="radio"
                   value="student"
                   {...register("role", { required: "Role is required" })}
-                  className="cursor-pointer"
+                  className="sr-only"
                 />
-                <Label>Student</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Input
+                <UserCheck className="w-4 h-4" />
+                <span className="text-xs">Candidate</span>
+              </label>
+
+              <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
+                selectedRole === "recruiter"
+                  ? "border-[#6A38C2] bg-purple-50/50 dark:bg-purple-950/40 text-[#6A38C2] dark:text-purple-300 font-bold shadow-sm"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 font-medium hover:border-gray-300"
+              }`}>
+                <input
                   type="radio"
                   value="recruiter"
                   {...register("role", { required: "Role is required" })}
-                  className="cursor-pointer"
+                  className="sr-only"
                 />
-                <Label>Recruiter</Label>
-              </div>
+                <Briefcase className="w-4 h-4" />
+                <span className="text-xs">Recruiter</span>
+              </label>
             </div>
             {errors.role && (
-              <p className="text-sm text-red-500">{errors.role.message}</p>
+              <p className="text-[11px] text-red-500 font-medium">{errors.role.message}</p>
             )}
           </div>
 
-          {/* File Upload with Validation */}
-          <div className="flex flex-col my-2">
-            <Label>Profile</Label>
+          {/* Profile Photo File Upload */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-purple-600" /> Profile Photo
+            </Label>
             <Input
               accept="image/*"
               type="file"
@@ -212,50 +297,58 @@ const Signup = () => {
                 validate: {
                   checkFileType: (value) => {
                     const file = value[0];
-                    const allowedTypes = [
-                      "image/jpeg",
-                      "image/png",
-                      "image/gif",
-                    ];
+                    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
                     return (
                       (file && allowedTypes.includes(file.type)) ||
-                      "Only JPEG, PNG or GIF images are allowed"
+                      "Only JPEG, PNG, WEBP or GIF images allowed"
                     );
                   },
                   checkFileSize: (value) => {
                     const file = value[0];
-                    const maxSize = 1024 * 1024; // 1MB
+                    const maxSize = 2 * 1024 * 1024; // 2MB
                     return (
                       (file && file.size <= maxSize) ||
-                      "File size must be less than 1MB"
+                      "File size must be less than 2MB"
                     );
                   },
                 },
               })}
-              className="cursor-pointer"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setSelectedFileName(e.target.files[0].name);
+                }
+              }}
+              className="text-xs rounded-xl h-11 bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 cursor-pointer"
             />
             {errors.file && (
-              <p className="text-sm text-red-500">{errors.file.message}</p>
+              <p className="text-[11px] text-red-500 font-medium">{errors.file.message}</p>
             )}
           </div>
 
           {/* Submit Button */}
-          {loading ? (
-            <Button className="w-full my-4" disabled>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please Wait
-            </Button>
-          ) : (
-            <Button className="w-full my-4" type="submit">
-              Sign Up
-            </Button>
-          )}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#6A38C2] hover:bg-[#5b30a6] text-white py-2.5 rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 transition-all duration-200 cursor-pointer h-11"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Creating Account...
+              </div>
+            ) : (
+              "Create Account"
+            )}
+          </Button>
 
-          <span className="text-sm">
-            Already have an account?{" "}
-            <Link to={"/login"} className="text-blue-600">
-              Login
-            </Link>
-          </span>
+          {/* Footer Link */}
+          <div className="text-center pt-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Already have an account?{" "}
+              <Link to="/login" className="text-purple-600 dark:text-purple-400 font-bold hover:underline">
+                Sign In
+              </Link>
+            </span>
+          </div>
         </form>
       </div>
     </div>

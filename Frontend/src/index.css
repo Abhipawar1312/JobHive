@@ -65,28 +65,103 @@
   }
 }
 
-.md-editor-container .wmde-markdown, /* For older versions */
-.md-editor-container .wmde-preview,  /* For newer versions */
+/* Universal Markdown Styles (No black background boxes in light or dark mode) */
+.wmde-markdown,
+.wmde-markdown-color,
+.w-md-editor-preview,
+.w-md-editor,
+.md-editor-container {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: inherit !important;
+  font-family: inherit !important;
+}
+
+.wmde-markdown ul,
+.wmde-markdown ol,
 .md-editor-container ul {
   list-style: disc !important;
-  padding-left: 20px;
+  padding-left: 20px !important;
 }
 
-.md-editor-container {
-  background: transparent !important;
-  /* Set text color explicitly */
-  color: hsl(var(--foreground)) !important;
+.wmde-markdown li::marker,
+.md-editor-container ul li::marker {
+  color: inherit !important;
 }
 
+.wmde-markdown pre,
+.wmde-markdown code,
 .md-editor-container pre,
 .md-editor-container code,
 .md-editor-container blockquote {
-  background: transparent !important;
+  background: rgba(106, 56, 194, 0.08) !important;
+  color: inherit !important;
 }
 
-/* 5. Force bullet color to match text color */
-@layer base {
-  .md-editor-container ul li::marker {
-    color: hsl(var(--foreground)) !important;
-  }
+.dark .wmde-markdown pre,
+.dark .wmde-markdown code {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: inherit !important;
+}
+
+/* ==========================================================================
+   ✨ Custom Global Scrollbar (Matches JobHive Purple Space Theme)
+   ========================================================================== */
+
+/* Webkit browsers (Chrome, Edge, Brave, Safari, Opera) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(106, 56, 194, 0.35);
+  border-radius: 9999px;
+  transition: all 0.2s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(106, 56, 194, 0.8);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #6A38C2;
+}
+
+/* Firefox standard scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(106, 56, 194, 0.4) transparent;
+}
+
+/* Scrollable containers (Modals, Drawers, Dropdowns, Cards) */
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(106, 56, 194, 0.4) transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+  border-radius: 9999px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.85);
 }

@@ -1,17 +1,12 @@
 import { SavedJob } from "../models/savedJobs.model.js";
 import { Job } from "../models/job.model.js";
 
-/**
- * @desc   Save a job for the authenticated user
- * @route  POST /api/savedjobs/save
- * @access Protected (requires isAuthenticated middleware)
- */
+// Save a job
 export const saveJob = async (req, res) => {
     try {
-        const userId = req.id; // using your isAuthenticated middleware that sets req.id
-        const { jobId } = req.body;
+        const userId = req.id;
+        const { jobId, notes } = req.body;
 
-        // Validate jobId
         if (!jobId) {
             return res.status(400).json({
                 message: "Job ID is required.",
@@ -19,7 +14,6 @@ export const saveJob = async (req, res) => {
             });
         }
 
-        // Optionally, verify that the job exists
         const jobExists = await Job.findById(jobId);
         if (!jobExists) {
             return res.status(404).json({
@@ -28,7 +22,6 @@ export const saveJob = async (req, res) => {
             });
         }
 
-        // Check if the job is already saved by the user
         const alreadySaved = await SavedJob.findOne({ user: userId, job: jobId });
         if (alreadySaved) {
             return res.status(400).json({
@@ -37,7 +30,12 @@ export const saveJob = async (req, res) => {
             });
         }
 
-        const newSavedJob = await SavedJob.create({ user: userId, job: jobId });
+        const newSavedJob = await SavedJob.create({
+            user: userId,
+            job: jobId,
+            notes: notes || ""
+        });
+
         return res.status(201).json({
             message: "Job saved successfully.",
             savedJob: newSavedJob,
@@ -52,11 +50,7 @@ export const saveJob = async (req, res) => {
     }
 };
 
-/**
- * @desc   Unsave a job for the authenticated user
- * @route  DELETE /api/savedjobs/unsave/:jobId
- * @access Protected (requires isAuthenticated middleware)
- */
+// Unsave a job
 export const unsaveJob = async (req, res) => {
     try {
         const userId = req.id;
@@ -77,7 +71,7 @@ export const unsaveJob = async (req, res) => {
             });
         }
         return res.status(200).json({
-            message: "Job unsaved successfully.",
+            message: "Job removed from saved list.",
             success: true,
         });
     } catch (error) {
@@ -89,11 +83,7 @@ export const unsaveJob = async (req, res) => {
     }
 };
 
-/**
- * @desc   Get all saved jobs for the authenticated user
- * @route  GET /api/savedjobs/
- * @access Protected (requires isAuthenticated middleware)
- */
+// Get all saved jobs for current user
 export const getSavedJobs = async (req, res) => {
     try {
         const userId = req.id;
@@ -102,11 +92,10 @@ export const getSavedJobs = async (req, res) => {
             options: { sort: { createdAt: -1 } },
             populate: {
                 path: 'company',
-                options: { sort: { createdAt: - 1 } }
             }
-        })
+        });
         return res.status(200).json({
-            savedJobs,
+            savedJobs: savedJobs || [],
             success: true,
         });
     } catch (error) {
@@ -114,6 +103,39 @@ export const getSavedJobs = async (req, res) => {
         return res.status(500).json({
             message: "Server Error.",
             success: false,
+        });
+    }
+};
+
+// Update notes on a saved job
+export const updateSavedJobNotes = async (req, res) => {
+    try {
+        const userId = req.id;
+        const { jobId } = req.params;
+        const { notes } = req.body;
+
+        const savedJob = await SavedJob.findOneAndUpdate(
+            { user: userId, job: jobId },
+            { notes: notes || "" },
+            { new: true }
+        );
+
+        if (!savedJob) {
+            return res.status(404).json({
+                message: "Saved job not found.",
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Notes updated.",
+            savedJob,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Error updating notes",
+            success: false
         });
     }
 };

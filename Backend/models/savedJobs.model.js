@@ -16,6 +16,10 @@ const savedJobSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Company"
         },
+        notes: {
+            type: String,
+            default: ""
+        }
     },
     { timestamps: true }
 );
