@@ -39,6 +39,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://jobhive-m79b.onrender.com",
     process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -107,13 +110,13 @@ const PORT = process.env.PORT || 8000;
 
 server.listen(PORT, () => {
     connectDB();
-    console.log(`🚀 JobHive Server & Sockets running at http://localhost:${PORT}`);
+    console.log(`🚀 JobHive Server & Sockets running`);
     if (process.env.GEMINI_API_KEY) {
-        console.log(`🤖 Google Gemini AI active: ${process.env.GEMINI_API_KEY.substring(0, 10)}...`);
+        console.log(`🤖 Google Gemini AI active`);
     }
     if (process.env.SENDGRID_API_KEY) {
-        console.log(`📧 SendGrid Real Email Provider active: abhipawar131202@gmail.com`);
+        console.log(`📧 SendGrid Real Email Provider active`);
     } else if (process.env.MAILTRAP_SMTP_USER) {
-        console.log(`📧 Mailtrap SMTP connected: ${process.env.MAILTRAP_SMTP_USER}`);
+        console.log(`📧 Mailtrap SMTP connected`);
     }
 });
