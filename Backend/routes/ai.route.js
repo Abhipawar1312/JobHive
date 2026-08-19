@@ -7,7 +7,8 @@ import {
     generateInterviewQuestions,
     parseResumeForProfile,
     evaluateMockInterviewAnswer,
-    tailorResumeForJob
+    tailorResumeForJob,
+    batchScreenApplicants
 } from "../Controllers/ai.controller.js";
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.route("/interview-prep/:jobId").get(generateInterviewQuestions);
 router.route("/parse-resume").post(isAuthenticated, singleUpload, parseResumeForProfile);
 router.route("/evaluate-mock-answer").post(isAuthenticated, evaluateMockInterviewAnswer);
 router.route("/tailor-resume").post(isAuthenticated, tailorResumeForJob);
+router.route("/screen-applicants/:jobId").post(isAuthenticated, batchScreenApplicants);
 
 export default router;

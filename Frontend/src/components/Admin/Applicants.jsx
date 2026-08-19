@@ -3,12 +3,12 @@ import ApplicantsTable from "./ApplicantsTable";
 import { useParams, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
-import { APPLICATION_API_END_POINT } from "@/utils/constant";
+import { APPLICATION_API_END_POINT, AI_API_END_POINT } from "@/utils/constant";
 import { setAllApplicants } from "../redux/applicationSlice";
 import { LoadingBarContext } from "../LoadingBarContext";
 import { useSocket } from "@/context/SocketContext";
 import { Button } from "../ui/button";
-import { Download, LayoutGrid, List, ArrowLeft, Users, Briefcase } from "lucide-react";
+import { Download, LayoutGrid, List, ArrowLeft, Users, Briefcase, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Applicants = () => {
@@ -18,6 +18,7 @@ const Applicants = () => {
   const { socket } = useSocket();
   const loadingBarRef = useContext(LoadingBarContext);
   const [viewMode, setViewMode] = useState("table"); // "table" or "kanban"
+  const [screeningLoading, setScreeningLoading] = useState(false);
 
   const fetchAllApplicants = async () => {
     try {
@@ -50,6 +51,27 @@ const Applicants = () => {
     };
   }, [socket]);
 
+  const handleScreenWithGemini = async () => {
+    try {
+      setScreeningLoading(true);
+      toast.info("Gemini AI is analyzing all applicant resumes against the JD...");
+      const res = await axios.post(
+        `${AI_API_END_POINT}/screen-applicants/${params.id}`,
+        {},
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        toast.success(res.data.message || "All resumes screened with Gemini AI!");
+        await fetchAllApplicants();
+      }
+    } catch (error) {
+      console.error("Screening error:", error);
+      toast.error(error.response?.data?.message || "Failed to screen applicants with AI");
+    } finally {
+      setScreeningLoading(false);
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       window.open(`${APPLICATION_API_END_POINT}/${params.id}/export-csv`, "_blank");
@@ -76,11 +98,11 @@ const Applicants = () => {
               {applicants?.title || "Job"} Applicants ({applicants?.applications?.length || 0})
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">
-              Manage candidate pipeline, update review stages, schedule interviews, and export records.
+              Manage candidate pipeline, review Gemini AI ATS match scores, schedule interviews, and export records.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* View Mode Toggle */}
             <div className="flex items-center p-1 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
               <button
@@ -105,6 +127,24 @@ const Applicants = () => {
               </button>
             </div>
 
+            {/* AI Screen All Resumes Button */}
+            <Button
+              onClick={handleScreenWithGemini}
+              disabled={screeningLoading || !applicants?.applications?.length}
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-xl font-bold gap-1.5 shadow-md shadow-purple-500/20"
+            >
+              {screeningLoading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Screening Resumes...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" /> AI Screen All Resumes
+                </>
+              )}
+            </Button>
+
             {/* Export CSV Button */}
             <Button
               onClick={handleExportCSV}
@@ -112,7 +152,7 @@ const Applicants = () => {
               size="sm"
               className="text-xs rounded-xl font-semibold border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300"
             >
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
             </Button>
           </div>
         </div>

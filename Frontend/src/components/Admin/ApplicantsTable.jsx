@@ -35,7 +35,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useSocket } from "@/context/SocketContext";
-import { calculateAtsMatchScore } from "@/utils/atsScorer";
+import { formatAtsScore } from "@/utils/atsScorer";
 import { Link } from "react-router-dom";
 
 const ALL_STATUSES = [
@@ -57,6 +57,8 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [interviewNotes, setInterviewNotes] = useState("");
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const [selectedAiApp, setSelectedAiApp] = useState(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   const handleStatusChange = async (status, applicationId, customDetails = null) => {
     try {
@@ -113,34 +115,14 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
   // Compute and optionally sort applications by ATS score
   let rawApplications = applicants?.applications ? [...applicants.applications] : [];
   
-  // Attach calculated ATS Match object (Preferring Gemini AI score from DB if present)
-  const applicationsWithAts = rawApplications.map((app) => {
-    const dbAtsScore = app.atsScore;
-    let atsMatch;
-    if (typeof dbAtsScore === "number" && dbAtsScore > 0) {
-      atsMatch = {
-        score: dbAtsScore,
-        label: dbAtsScore >= 80 ? "Top Match" : dbAtsScore >= 60 ? "Good Match" : "Low Match",
-        badgeClass: dbAtsScore >= 80
-          ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800"
-          : dbAtsScore >= 60
-          ? "text-amber-700 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800"
-          : "text-rose-700 bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800",
-        dotColor: dbAtsScore >= 80 ? "bg-emerald-500" : dbAtsScore >= 60 ? "bg-amber-500" : "bg-rose-500",
-        isGeminiAi: true,
-      };
-    } else {
-      atsMatch = calculateAtsMatchScore(applicants, app.applicant);
-    }
-
-    return {
-      ...app,
-      atsMatch,
-    };
-  });
+  // Attach calculated ATS Match object (Preferring Gemini AI score from DB)
+  const applicationsWithAts = rawApplications.map((app) => ({
+    ...app,
+    atsMatch: formatAtsScore(app.atsScore),
+  }));
 
   const applications = sortByAts
-    ? applicationsWithAts.sort((a, b) => b.atsMatch.score - a.atsMatch.score)
+    ? applicationsWithAts.sort((a, b) => (b.atsScore || 0) - (a.atsScore || 0))
     : applicationsWithAts;
 
   // Header Toolbar with ATS Sort Toggle
@@ -240,10 +222,17 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
 
                         {/* AI ATS Match Score Badge */}
                         <div className="flex items-center justify-between">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${item.atsMatch.badgeClass}`}>
+                          <button
+                            onClick={() => {
+                              setSelectedAiApp(item);
+                              setAiModalOpen(true);
+                            }}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border cursor-pointer hover:scale-105 transition-transform ${item.atsMatch.badgeClass}`}
+                            title="Click to view full Gemini AI ATS Analysis"
+                          >
                             <Sparkles className="w-2.5 h-2.5" />
-                            AI Match: {item.atsMatch.score}%
-                          </span>
+                            {item.atsScore ? `AI Match: ${item.atsScore}%` : "AI: Pending"}
+                          </button>
                         </div>
 
                         {/* Skills */}
@@ -410,10 +399,17 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border ${item.atsMatch.badgeClass}`}>
+                    <button
+                      onClick={() => {
+                        setSelectedAiApp(item);
+                        setAiModalOpen(true);
+                      }}
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border cursor-pointer hover:scale-105 transition-transform ${item.atsMatch.badgeClass}`}
+                      title={item.atsScore ? "Click to view full Gemini AI ATS analysis" : "Unscanned. Click 'AI Screen All Resumes' above"}
+                    >
                       <Sparkles className="w-3 h-3" />
-                      {item.atsMatch.score}%
-                    </span>
+                      {item.atsScore ? `${item.atsScore}%` : "Pending"}
+                    </button>
                   </TableCell>
                   <TableCell className="text-xs text-gray-600 dark:text-gray-300">
                     <div>{item.applicant?.email}</div>
@@ -558,6 +554,128 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
                 )}
               </Button>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Gemini AI ATS Breakdown Dialog */}
+        <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+          <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-2xl">
+            <DialogHeader>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-gray-900 dark:text-white">
+                    Gemini AI Resume Screening: {selectedAiApp?.applicant?.fullname}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-400">
+                    Deep PDF resume analysis against {applicants?.title || "Job"} requirements
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            {selectedAiApp && (
+              <div className="space-y-4 mt-3 text-xs">
+                {/* Score Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-purple-900/40 border border-purple-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-purple-300 tracking-wider">AI ATS Match Score</span>
+                    <h3 className="text-2xl font-black text-white mt-0.5">
+                      {selectedAiApp.atsScore ? `${selectedAiApp.atsScore}%` : "Not Scanned Yet"}
+                    </h3>
+                    <p className="text-[11px] text-purple-200 mt-0.5">
+                      {selectedAiApp.atsFeedback?.isResumeScanned
+                        ? "Verified directly against uploaded PDF resume document"
+                        : "Candidate Profile evaluation"}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${selectedAiApp.atsMatch?.badgeClass}`}>
+                    {selectedAiApp.atsMatch?.label}
+                  </span>
+                </div>
+
+                {/* AI Executive Summary */}
+                {selectedAiApp.atsFeedback?.summary && (
+                  <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-1.5">
+                      🎯 Executive Summary
+                    </h4>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                      {selectedAiApp.atsFeedback.summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Matched Skills */}
+                {selectedAiApp.atsFeedback?.matchingSkills?.length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
+                      ✓ Verified Matching Skills ({selectedAiApp.atsFeedback.matchingSkills.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedAiApp.atsFeedback.matchingSkills.map((skill, idx) => (
+                        <span key={idx} className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 font-medium">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Missing Skills */}
+                {selectedAiApp.atsFeedback?.missingSkills?.length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-amber-600 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+                      ⚠ Missing Job Requirements ({selectedAiApp.atsFeedback.missingSkills.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedAiApp.atsFeedback.missingSkills.map((skill, idx) => (
+                        <span key={idx} className="bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 font-medium">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {selectedAiApp.atsFeedback?.recommendations?.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50">
+                    <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-1">
+                      💡 AI Recommendations
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                      {selectedAiApp.atsFeedback.recommendations.map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t dark:border-gray-800 flex items-center justify-between">
+                  {selectedAiApp.applicant?.profile?.resume && (
+                    <a
+                      href={selectedAiApp.applicant.profile.resume}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-purple-600 font-bold hover:underline"
+                    >
+                      <FileText className="w-4 h-4" /> Open Resume PDF
+                    </a>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => setAiModalOpen(false)}
+                    className="bg-purple-600 text-white rounded-xl text-xs"
+                  >
+                    Close Analysis
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

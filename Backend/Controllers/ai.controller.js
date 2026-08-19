@@ -7,6 +7,7 @@ import { User } from "../models/user.model.js";
 import { Company } from "../models/company.model.js";
 import { Application } from "../models/application.model.js";
 import { emitApplicationUpdate } from "../utils/socket.js";
+import { evaluateResumeWithGemini } from "../utils/geminiAtsEngine.js";
 
 const require = createRequire(import.meta.url);
 const pdf = require("pdf-parse");
@@ -39,121 +40,39 @@ export const analyzeResumeMatch = async (req, res) => {
             return res.status(404).json({ message: "User or Job not found", success: false });
         }
 
-        const candidateSkills = user.profile?.skills || [];
-        const candidateBio = user.profile?.bio || "";
-        const resumeUrl = user.profile?.resume || "";
-        const jobReqs = job.requirements || "";
-        const jobTitle = job.title;
-        const jobDesc = job.description;
+        // Run 100% Real Gemini AI Evaluation on candidate's PDF resume and Job Description
+        const aiResult = await evaluateResumeWithGemini(user, job);
 
-        // 📄 Fetch candidate's uploaded resume PDF
-        let base64Pdf = null;
-        let isResumeScanned = false;
-
-        if (resumeUrl) {
+        if (aiResult) {
+            // Persist the Gemini AI score onto candidate's Application record in DB
             try {
-                const pdfRes = await fetch(resumeUrl);
-                if (pdfRes.ok) {
-                    const arrayBuffer = await pdfRes.arrayBuffer();
-                    if (arrayBuffer.byteLength > 100) {
-                        base64Pdf = Buffer.from(arrayBuffer).toString("base64");
-                        isResumeScanned = true;
-                    }
-                }
-            } catch (pdfErr) {
-                console.error("Resume PDF Download Error:", pdfErr.message);
-            }
-        }
-
-        const model = getGeminiModel();
-
-        if (model) {
-            const prompt = `
-You are an advanced Applicant Tracking System (ATS) and Senior Technical Recruiter.
-Carefully analyze this candidate's resume against the target job posting.
-
-TARGET JOB POSTING:
-- Title: ${jobTitle}
-- Company: ${job.company?.name || "Tech Company"}
-- Requirements: ${jobReqs}
-- Description: ${jobDesc}
-
-Perform a comprehensive ATS evaluation:
-1. matchPercentage: Integer between 0 and 100 based on true match of experience, tech stack, and skills in the resume.
-2. summary: A 2-sentence summary highlighting the candidate's core strengths and any specific gaps.
-3. matchingSkills: Array of specific skills/technologies found in both the candidate's resume and job requirements.
-4. missingSkills: Array of critical skills or technologies required by the job that are missing from the resume.
-5. recommendations: Array of 2-3 actionable tips to improve match for this specific role.
-
-Respond with ONLY valid JSON with no markdown formatting or commentary:
-{
-  "matchPercentage": 85,
-  "summary": "...",
-  "matchingSkills": ["..."],
-  "missingSkills": ["..."],
-  "recommendations": ["..."]
-}
-`;
-
-            try {
-                const contentParts = [];
-                if (base64Pdf) {
-                    contentParts.push({
-                        inlineData: {
-                            data: base64Pdf,
-                            mimeType: "application/pdf"
+                const updatedApp = await Application.findOneAndUpdate(
+                    { job: jobId, applicant: userId },
+                    {
+                        atsScore: aiResult.matchPercentage,
+                        atsFeedback: {
+                            summary: aiResult.summary,
+                            matchingSkills: aiResult.matchingSkills,
+                            missingSkills: aiResult.missingSkills,
+                            recommendations: aiResult.recommendations,
+                            isResumeScanned: aiResult.isResumeScanned
                         }
-                    });
-                } else {
-                    contentParts.push(`CANDIDATE PROFILE:\n- Skills: ${candidateSkills.join(", ") || "None listed"}\n- Bio: ${candidateBio || "None provided"}`);
-                }
-                contentParts.push(prompt);
-
-                const result = await model.generateContent(contentParts);
-                const responseText = result.response.text().trim();
-                const cleanedJson = responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
-                const parsed = JSON.parse(cleanedJson);
-
-                const finalScore = parsed.matchPercentage ?? parsed.atsScore ?? 75;
-
-                // Persist the Gemini AI score onto candidate's Application record in DB
-                try {
-                    const updatedApp = await Application.findOneAndUpdate(
-                        { job: jobId, applicant: userId },
-                        {
-                            atsScore: finalScore,
-                            atsFeedback: {
-                                summary: parsed.summary,
-                                matchingSkills: parsed.matchingSkills || parsed.matchedSkills || [],
-                                missingSkills: parsed.missingSkills || [],
-                                isResumeScanned
-                            }
-                        },
-                        { new: true }
-                    );
-
-                    if (updatedApp && job.created_by) {
-                        emitApplicationUpdate(job.created_by.toString(), updatedApp);
-                    }
-                } catch (dbErr) {
-                    console.error("Failed to save ATS score to Application:", dbErr.message);
-                }
-
-                return res.status(200).json({
-                    success: true,
-                    data: {
-                        matchPercentage: finalScore,
-                        summary: parsed.summary || `Candidate shows relevant match for ${jobTitle} role.`,
-                        matchingSkills: parsed.matchingSkills || parsed.matchedSkills || candidateSkills,
-                        missingSkills: parsed.missingSkills || [],
-                        recommendations: parsed.recommendations || [],
-                        isResumeScanned
                     },
-                    aiPowered: true
-                });
-            } catch (aiError) {
-                console.error("Gemini AI API call failed, falling back to heuristic:", aiError.message);
+                    { new: true }
+                );
+
+                if (updatedApp && job.created_by) {
+                    emitApplicationUpdate(job.created_by.toString(), updatedApp);
+                }
+            } catch (dbErr) {
+                console.error("Failed to save ATS score to Application:", dbErr.message);
             }
+
+            return res.status(200).json({
+                success: true,
+                data: aiResult,
+                aiPowered: true
+            });
         }
 
         // Rule-Based Heuristic Fallback if no API key or AI error
@@ -667,3 +586,48 @@ Generate the response in ONLY valid JSON with no markdown wrapping:
         return res.status(500).json({ message: "Failed to generate tailored resume", success: false });
     }
 };
+
+// 7. Recruiter Batch ATS Screener: Evaluates all candidate resumes for a job using Gemini AI
+export const batchScreenApplicants = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const job = await Job.findById(jobId).populate({
+            path: "applications",
+            populate: { path: "applicant" }
+        }).populate("company");
+
+        if (!job) {
+            return res.status(404).json({ message: "Job not found", success: false });
+        }
+
+        const results = [];
+        for (const app of (job.applications || [])) {
+            const applicantUser = app.applicant;
+            if (!applicantUser) continue;
+
+            const aiResult = await evaluateResumeWithGemini(applicantUser, job);
+            if (aiResult) {
+                app.atsScore = aiResult.matchPercentage;
+                app.atsFeedback = {
+                    summary: aiResult.summary,
+                    matchingSkills: aiResult.matchingSkills,
+                    missingSkills: aiResult.missingSkills,
+                    recommendations: aiResult.recommendations,
+                    isResumeScanned: aiResult.isResumeScanned
+                };
+                await app.save();
+                results.push({ applicationId: app._id, atsScore: aiResult.matchPercentage, feedback: app.atsFeedback });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Successfully evaluated ${results.length} applicants with Gemini AI.`,
+            results
+        });
+    } catch (error) {
+        console.error("Batch Screen Error:", error);
+        return res.status(500).json({ message: "Failed to screen applicants", success: false });
+    }
+};
+

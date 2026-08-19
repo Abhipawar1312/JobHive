@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { Notification } from "../models/notification.model.js";
 import { emitNotification, emitApplicationUpdate } from "../utils/socket.js";
 import { sendApplicationConfirmationEmail, sendStatusUpdateEmail } from "../utils/emailService.js";
+import { evaluateResumeWithGemini } from "../utils/geminiAtsEngine.js";
 
 // Candidate: Apply for a Job
 export const applyJob = async (req, res) => {
@@ -27,6 +28,7 @@ export const applyJob = async (req, res) => {
             });
         }
 
+        // Check if job exists
         const job = await Job.findById(jobId).populate("company");
         if (!job) {
             return res.status(404).json({
@@ -36,37 +38,18 @@ export const applyJob = async (req, res) => {
         }
 
         const applicantUser = await User.findById(userId);
-        if (!applicantUser?.profile?.resume && !applicantUser?.profile?.resumeOriginalName) {
+        if (!applicantUser?.profile?.resume) {
             return res.status(400).json({
                 message: "Please upload your resume in your profile before applying for jobs.",
                 success: false
             });
         }
 
-        // Calculate smart ATS score on apply
-        let initialAtsScore = 40;
-        const jobText = `${job.title || ""} ${job.description || ""} ${job.requirements || ""}`.toLowerCase();
-        const candidateSkills = applicantUser.profile?.skills || [];
-        if (candidateSkills.length > 0) {
-            let matches = 0;
-            candidateSkills.forEach(s => {
-                if (!s) return;
-                const clean = s.toLowerCase().trim().replace(/\(.*?\)/g, "").replace(/\.js/g, "");
-                if (clean && (jobText.includes(clean) || (clean.includes("react") && jobText.includes("react")) || (clean.includes("javascript") && (jobText.includes("javascript") || jobText.includes("js"))))) {
-                    matches++;
-                }
-            });
-            initialAtsScore += Math.min(Math.round((matches / Math.max(candidateSkills.length, 1)) * 45), 45);
-        }
-        if (applicantUser.profile?.resume) initialAtsScore += 10;
-        initialAtsScore = Math.max(40, Math.min(initialAtsScore, 98));
-
-        // Create application with initial timeline & ATS score
+        // Create application with initial timeline
         const newApplication = await Application.create({
             job: jobId,
             applicant: userId,
             status: "pending",
-            atsScore: initialAtsScore,
             timeline: [
                 {
                     status: "pending",
@@ -78,6 +61,25 @@ export const applyJob = async (req, res) => {
 
         job.applications.push(newApplication._id);
         await job.save();
+
+        // 🤖 Asynchronously run 100% Real Gemini AI evaluation on candidate's PDF resume against JD
+        evaluateResumeWithGemini(applicantUser, job).then(async (aiResult) => {
+            if (aiResult) {
+                newApplication.atsScore = aiResult.matchPercentage;
+                newApplication.atsFeedback = {
+                    summary: aiResult.summary,
+                    matchingSkills: aiResult.matchingSkills,
+                    missingSkills: aiResult.missingSkills,
+                    recommendations: aiResult.recommendations,
+                    isResumeScanned: aiResult.isResumeScanned
+                };
+                await newApplication.save();
+
+                if (job.created_by) {
+                    emitApplicationUpdate(job.created_by.toString(), newApplication);
+                }
+            }
+        }).catch(aiErr => console.error("Async AI Resume ATS Scan Error on apply:", aiErr.message));
 
         // 1. Create notification for Recruiter
         if (job.created_by) {
@@ -161,6 +163,35 @@ export const getApplicants = async (req, res) => {
                 message: 'Job Not Found',
                 success: false
             });
+        }
+
+        // Auto-screen any un-scanned applicants in the background with Gemini AI
+        const unscannedApps = (job.applications || []).filter(app => typeof app.atsScore !== "number" || app.atsScore <= 0);
+        if (unscannedApps.length > 0) {
+            (async () => {
+                for (const app of unscannedApps) {
+                    if (!app.applicant) continue;
+                    try {
+                        const aiResult = await evaluateResumeWithGemini(app.applicant, job);
+                        if (aiResult) {
+                            app.atsScore = aiResult.matchPercentage;
+                            app.atsFeedback = {
+                                summary: aiResult.summary,
+                                matchingSkills: aiResult.matchingSkills,
+                                missingSkills: aiResult.missingSkills,
+                                recommendations: aiResult.recommendations,
+                                isResumeScanned: aiResult.isResumeScanned
+                            };
+                            await app.save();
+                            if (job.created_by) {
+                                emitApplicationUpdate(job.created_by.toString(), app);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Auto AI scan error for applicant:", e.message);
+                    }
+                }
+            })();
         }
 
         return res.status(200).json({
