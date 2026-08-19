@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { LoadingBarContext } from "./LoadingBarContext";
 import MDEditor from "@uiw/react-md-editor";
 import confetti from "canvas-confetti";
-import SalaryInsights from "./SalaryInsights";
 import {
   Sparkles,
   Bot,
@@ -133,7 +132,8 @@ const JobDescription = () => {
 
   const handleCheckAts = async () => {
     if (!user) {
-      toast.error("Please login to run AI ATS Score Analysis.");
+      toast.error("Please login as a candidate to check your AI ATS Match Score.");
+      navigate("/login");
       return;
     }
     setAtsModalOpen(true);
@@ -156,7 +156,38 @@ const JobDescription = () => {
     }
   };
 
+  const handleTailorResume = async () => {
+    if (!user) {
+      toast.error("Please login as a candidate to generate an AI Tailored Resume.");
+      navigate("/login");
+      return;
+    }
+    setTailorModalOpen(true);
+    if (tailorResult) return;
+
+    try {
+      setTailorLoading(true);
+      const res = await axios.post(
+        `${AI_API_END_POINT}/tailor-resume`,
+        { jobId },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setTailorResult(res.data.data || res.data.tailoredResume);
+      }
+    } catch (error) {
+      toast.error("Failed to generate tailored resume.");
+    } finally {
+      setTailorLoading(false);
+    }
+  };
+
   const handleInterviewPrep = async () => {
+    if (!user) {
+      toast.error("Please login as a candidate to access the AI Interview Prep Coach.");
+      navigate("/login");
+      return;
+    }
     setPrepModalOpen(true);
     if (prepResult) return;
 
@@ -184,6 +215,11 @@ const JobDescription = () => {
   };
 
   const startMockInterview = async () => {
+    if (!user) {
+      toast.error("Please login as a candidate to practice with the AI Mock Interviewer.");
+      navigate("/login");
+      return;
+    }
     setMockModalOpen(true);
     setMockCurrentIdx(0);
     setMockUserAnswer("");
@@ -306,33 +342,6 @@ const JobDescription = () => {
     }
   };
 
-  const handleTailorResume = async () => {
-    if (!user) {
-      toast.error("Please login to generate an AI tailored resume.");
-      navigate("/login");
-      return;
-    }
-    setTailorModalOpen(true);
-    if (!tailorResult) {
-      try {
-        setTailorLoading(true);
-        const res = await axios.post(
-          `${AI_API_END_POINT}/tailor-resume`,
-          { jobId },
-          { withCredentials: true }
-        );
-        if (res.data.success) {
-          setTailorResult(res.data.tailoredData);
-          toast.success("✨ AI Tailored Resume Profile generated!");
-        }
-      } catch (err) {
-        toast.error("Failed to generate tailored resume.");
-      } finally {
-        setTailorLoading(false);
-      }
-    }
-  };
-
   const handleNextMockQuestion = () => {
     const questions = getQuestionsList();
     if (mockCurrentIdx < questions.length - 1) {
@@ -429,11 +438,10 @@ const JobDescription = () => {
               <Button
                 onClick={isApplied ? null : applyJobHandler}
                 disabled={isApplied}
-                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold transition-all shadow-sm ${
-                  isApplied
+                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold transition-all shadow-sm ${isApplied
                     ? "bg-gray-400 dark:bg-gray-700 text-white cursor-not-allowed"
                     : "bg-[#6A38C2] hover:bg-[#5b30a6] text-white font-bold"
-                }`}
+                  }`}
               >
                 {isApplied ? "✓ Already Applied" : "Apply for Job"}
               </Button>
@@ -522,9 +530,6 @@ const JobDescription = () => {
               </div>
             </div>
           </div>
-
-          {/* Real-Time Salary Insights & Skill Trends Benchmark */}
-          <SalaryInsights job={singleJob} />
         </div>
       </div>
 
@@ -779,9 +784,8 @@ const JobDescription = () => {
                     variant={isRecording ? "destructive" : "outline"}
                     size="sm"
                     onClick={handleToggleVoiceRecording}
-                    className={`text-xs h-8 rounded-xl font-semibold flex items-center gap-1.5 ${
-                      isRecording ? "animate-pulse shadow-md" : "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300 hover:bg-emerald-50"
-                    }`}
+                    className={`text-xs h-8 rounded-xl font-semibold flex items-center gap-1.5 ${isRecording ? "animate-pulse shadow-md" : "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300 hover:bg-emerald-50"
+                      }`}
                   >
                     {isRecording ? (
                       <>

@@ -1,12 +1,11 @@
-// App.js
 import React from "react";
 import { RouterProvider } from "react-router-dom";
-// import appRouter from "./appRouter"; // Ensure the path is correct
 import { ThemeProvider } from "./components/ThemeProvider";
 import { StarsBackground } from "./components/StarsBackground";
 import { ShootingStars } from "./components/ShootingStars";
 import LoadingBarProvider from "./components/LoadingBarContext";
 import appRouter from "./components/appRouter";
+import NetworkStatusBanner from "./components/shared/NetworkStatusBanner";
 
 function App() {
   return (
@@ -32,6 +31,7 @@ function App() {
         {/* Content Layer */}
         <div className="relative z-10 min-h-screen">
           <RouterProvider router={appRouter} />
+          <NetworkStatusBanner />
         </div>
       </ThemeProvider>
     </LoadingBarProvider>

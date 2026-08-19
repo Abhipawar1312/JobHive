@@ -59,6 +59,46 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [selectedAiApp, setSelectedAiApp] = useState(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [selectedAppIds, setSelectedAppIds] = useState([]);
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
+
+  const handleToggleSelect = (id) => {
+    setSelectedAppIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedAppIds.length === applications.length) {
+      setSelectedAppIds([]);
+    } else {
+      setSelectedAppIds(applications.map(a => a._id));
+    }
+  };
+
+  const handleBatchStatus = async (status) => {
+    if (!selectedAppIds.length) return;
+    try {
+      setBatchActionLoading(true);
+      toast.info(`Updating ${selectedAppIds.length} candidate(s) to ${status}...`);
+      await Promise.all(
+        selectedAppIds.map(appId =>
+          axios.post(
+            `${APPLICATION_API_END_POINT}/status/${appId}/update`,
+            { status },
+            { withCredentials: true }
+          )
+        )
+      );
+      toast.success(`Successfully updated ${selectedAppIds.length} candidate(s) to ${status}!`);
+      setSelectedAppIds([]);
+      if (onStatusChanged) onStatusChanged();
+    } catch (err) {
+      toast.error("Failed to update some candidates.");
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
 
   const handleStatusChange = async (status, applicationId, customDetails = null) => {
     try {
@@ -85,9 +125,7 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
   const handleOpenScheduleModal = (application) => {
     setSelectedApplication(application);
     setInterviewDate(application.interviewDetails?.date ? application.interviewDetails.date.substring(0, 16) : "");
-    // Default meeting URL to in-app room if not specified
-    const defaultRoomUrl = `${window.location.origin}/interview/jobhive-${application._id.substring(0, 8)}`;
-    setMeetingUrl(application.interviewDetails?.meetingUrl || defaultRoomUrl);
+    setMeetingUrl(application.interviewDetails?.meetingUrl || "");
     setInterviewNotes(application.interviewDetails?.notes || "");
     setScheduleModalOpen(true);
   };
@@ -125,26 +163,81 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
     ? applicationsWithAts.sort((a, b) => (b.atsScore || 0) - (a.atsScore || 0))
     : applicationsWithAts;
 
-  // Header Toolbar with ATS Sort Toggle
+  // Header Toolbar with ATS Sort Toggle & Bulk Action Bar
   const renderToolbar = () => (
-    <div className="flex items-center justify-between gap-3 mb-4">
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setSortByAts(!sortByAts)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-            sortByAts
-              ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20"
-              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-500"
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          {sortByAts ? "Sorted by AI ATS Score" : "Sort by AI ATS Match"}
-        </button>
+    <div className="space-y-3 mb-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSortByAts(!sortByAts)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              sortByAts
+                ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20"
+                : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-500"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            {sortByAts ? "Sorted by AI ATS Score" : "Sort by AI ATS Match"}
+          </button>
+        </div>
+
+        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+          Total Applicants: <span className="font-bold text-gray-900 dark:text-white">{applications.length}</span>
+        </span>
       </div>
 
-      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-        Total Applicants: <span className="font-bold text-gray-900 dark:text-white">{applications.length}</span>
-      </span>
+      {/* Floating Bulk Action Bar */}
+      {selectedAppIds.length > 0 && (
+        <div className="p-3 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-purple-900 dark:text-purple-200">
+              ✓ {selectedAppIds.length} of {applications.length} Selected
+            </span>
+            <button
+              onClick={() => setSelectedAppIds([])}
+              className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold cursor-pointer"
+            >
+              Deselect All
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-gray-500 font-medium mr-1">Batch Move:</span>
+            <Button
+              size="sm"
+              disabled={batchActionLoading}
+              onClick={() => handleBatchStatus("shortlisted")}
+              className="text-xs h-7 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
+            >
+              Shortlist
+            </Button>
+            <Button
+              size="sm"
+              disabled={batchActionLoading}
+              onClick={() => handleBatchStatus("reviewing")}
+              className="text-xs h-7 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+            >
+              In Review
+            </Button>
+            <Button
+              size="sm"
+              disabled={batchActionLoading}
+              onClick={() => handleBatchStatus("accepted")}
+              className="text-xs h-7 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            >
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              disabled={batchActionLoading}
+              onClick={() => handleBatchStatus("rejected")}
+              className="text-xs h-7 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold"
+            >
+              Reject
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -318,10 +411,10 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Meeting URL (In-App Video Room / Google Meet)</Label>
+                <Label className="text-xs font-semibold">Meeting URL (Google Meet / Zoom / MS Teams)</Label>
                 <Input
                   type="url"
-                  placeholder="https://jobhive.com/interview/..."
+                  placeholder="https://meet.google.com/... or https://zoom.us/j/..."
                   value={meetingUrl}
                   onChange={(e) => setMeetingUrl(e.target.value)}
                   className="text-xs rounded-xl h-11"
@@ -367,6 +460,15 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <input
+                  type="checkbox"
+                  checked={selectedAppIds.length === applications.length && applications.length > 0}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded text-purple-600 cursor-pointer accent-purple-600"
+                  title="Select All"
+                />
+              </TableHead>
               <TableHead>Candidate</TableHead>
               <TableHead>AI ATS Score</TableHead>
               <TableHead>Contact Info</TableHead>
@@ -379,13 +481,21 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
           <TableBody>
             {applications.length <= 0 ? (
               <TableRow>
-                <TableCell colSpan="7" className="text-center py-8 text-gray-500">
+                <TableCell colSpan="8" className="text-center py-8 text-gray-500">
                   No applicants found for this job listing.
                 </TableCell>
               </TableRow>
             ) : (
               applications.map((item) => (
                 <TableRow key={item._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/40">
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedAppIds.includes(item._id)}
+                      onChange={() => handleToggleSelect(item._id)}
+                      className="w-4 h-4 rounded text-purple-600 cursor-pointer accent-purple-600"
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
                       {item.applicant?.fullname}
@@ -519,10 +629,10 @@ const ApplicantsTable = ({ viewMode = "table", onStatusChanged }) => {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Meeting URL (In-App Video Room / Google Meet)</Label>
+                <Label className="text-xs font-semibold">Meeting URL (Google Meet / Zoom / MS Teams)</Label>
                 <Input
                   type="url"
-                  placeholder="https://jobhive.com/interview/..."
+                  placeholder="https://meet.google.com/... or https://zoom.us/j/..."
                   value={meetingUrl}
                   onChange={(e) => setMeetingUrl(e.target.value)}
                   className="text-xs rounded-xl h-11"

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import useGetAllSavedJobs from "@/Hooks/useGetAllSavedJobs";
 import useGetAllJobs from "@/Hooks/useGetAllJobs";
 import { Briefcase, SearchX } from "lucide-react";
+import { JobCardSkeleton } from "./shared/SkeletonLoader";
 
 const Jobs = () => {
   useGetAllSavedJobs();
@@ -75,7 +76,13 @@ const Jobs = () => {
             </h2>
           </div>
 
-          {filterJobs.length <= 0 ? (
+          {!allJobs ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <JobCardSkeleton key={idx} />
+              ))}
+            </div>
+          ) : filterJobs.length <= 0 ? (
             <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 text-center shadow-sm">
               <SearchX className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
               <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">No matching jobs found</h3>

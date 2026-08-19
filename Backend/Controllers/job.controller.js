@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Job } from "../models/job.model.js";
 import { SavedJob } from "../models/savedJobs.model.js";
+import { JobAlert } from "../models/jobAlert.model.js";
 import { getCache, setCache, deleteCache, clearJobCache } from "../utils/redis.js";
 
 // Recruiter: Post Job
@@ -342,6 +343,48 @@ export const deleteJob = async (req, res) => {
         console.error("Delete Job Error:", error);
         return res.status(500).json({
             message: "Internal Server Error",
+            success: false
+        });
+    }
+};
+
+// Candidate / Guest: Subscribe to Smart Job Alerts
+export const subscribeJobAlerts = async (req, res) => {
+    try {
+        const { email, keywords, location, frequency } = req.body;
+        const userId = req.id || null;
+
+        if (!email) {
+            return res.status(400).json({
+                message: "Email is required to subscribe to job alerts.",
+                success: false
+            });
+        }
+
+        const keywordsArray = Array.isArray(keywords)
+            ? keywords
+            : typeof keywords === "string"
+            ? keywords.split(",").map(k => k.trim()).filter(Boolean)
+            : [];
+
+        const alert = await JobAlert.create({
+            email,
+            user: userId,
+            keywords: keywordsArray,
+            location: location || "",
+            frequency: frequency || "weekly",
+            isActive: true
+        });
+
+        return res.status(201).json({
+            message: "Successfully subscribed to JobHive Smart Job Alerts!",
+            alert,
+            success: true
+        });
+    } catch (error) {
+        console.error("Subscribe Job Alerts Error:", error);
+        return res.status(500).json({
+            message: "Failed to subscribe to job alerts.",
             success: false
         });
     }

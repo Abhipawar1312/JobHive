@@ -24,13 +24,8 @@ const CompanySetup = lazy(() => import("./Admin/CompanySetup"));
 const AdminJobs = lazy(() => import("./Admin/AdminJobs"));
 const PostJobs = lazy(() => import("./Admin/PostJobs"));
 const Applicants = lazy(() => import("./Admin/Applicants"));
-const InterviewRoom = lazy(() => import("./InterviewRoom"));
 
 const appRouter = createBrowserRouter([
-  {
-    path: "/interview/:roomName",
-    element: <InterviewRoom />,
-  },
   {
     path: "/",
     element: <RootLayout />, // Layout that includes Navbar and an Outlet
