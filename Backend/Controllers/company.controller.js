@@ -1,4 +1,5 @@
 import { Company } from "../models/company.model.js";
+import { User } from "../models/user.model.js";
 import cloudinary from "../utils/cloudinary.js";
 import getDataUri from "../utils/datauri.js";
 
@@ -12,10 +13,19 @@ export const registerCompany = async (req, res) => {
             });
         }
         
+        let existingUserCompany = await Company.findOne({ userId: req.id });
+        if (existingUserCompany) {
+            return res.status(400).json({
+                message: `You have already registered "${existingUserCompany.name}". Each recruiter account manages their dedicated company organization.`,
+                company: existingUserCompany,
+                success: false
+            });
+        }
+
         let company = await Company.findOne({ name: companyName });
         if (company) {
             return res.status(400).json({
-                message: "A company with this name already exists.",
+                message: "A company with this name already exists. Please choose a unique name.",
                 success: false
             });
         }
@@ -25,8 +35,11 @@ export const registerCompany = async (req, res) => {
             userId: req.id
         });
 
+        // Automatically link company to recruiter's user profile
+        await User.findByIdAndUpdate(req.id, { "profile.company": company._id });
+
         return res.status(201).json({
-            message: "Company registered successfully.",
+            message: "Company organization registered successfully.",
             company,
             success: true
         });

@@ -32,6 +32,11 @@ const jobSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    status: {
+        type: String,
+        enum: ["open", "closed"],
+        default: "open"
+    },
     company: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Company',

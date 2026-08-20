@@ -3,7 +3,12 @@ import io from "socket.io-client";
 import { useSelector, useDispatch } from "react-redux";
 import { BASE_URL } from "@/utils/constant";
 import { toast } from "sonner";
-import { updateAppliedJobStatus } from "@/components/redux/jobSlice";
+import {
+    updateAppliedJobStatus,
+    addJobRealtime,
+    updateJobRealtime,
+    deleteJobRealtime
+} from "@/components/redux/jobSlice";
 import ChatModal from "@/components/shared/ChatModal";
 
 const defaultSocketContext = {
@@ -48,70 +53,80 @@ export const SocketProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        if (user?._id) {
-            const newSocket = io(BASE_URL, {
-                query: {
-                    userId: user._id,
-                },
-                transports: ["websocket", "polling"],
-                withCredentials: true,
+        const queryParams = user?._id ? { userId: user._id } : { userId: "guest" };
+        const newSocket = io(BASE_URL, {
+            query: queryParams,
+            transports: ["websocket", "polling"],
+            withCredentials: true,
+        });
+
+        setSocket(newSocket);
+
+        newSocket.on("getOnlineUsers", (users) => {
+            setOnlineUsers(users);
+        });
+
+        newSocket.on("newNotification", (notification) => {
+            setNotifications((prev) => [notification, ...prev]);
+            setUnreadNotifications((prev) => prev + 1);
+            toast.info(notification.title || "New Notification", {
+                description: notification.message,
             });
+        });
 
-            setSocket(newSocket);
-
-            newSocket.on("getOnlineUsers", (users) => {
-                setOnlineUsers(users);
-            });
-
-            newSocket.on("newNotification", (notification) => {
-                setNotifications((prev) => [notification, ...prev]);
-                setUnreadNotifications((prev) => prev + 1);
-                toast.info(notification.title || "New Notification", {
-                    description: notification.message,
-                });
-            });
-
-            // Real-time Application Status Update in Redux
-            newSocket.on("applicationUpdated", (appData) => {
-                if (appData?._id) {
-                    dispatch(updateAppliedJobStatus({
-                        applicationId: appData._id,
-                        status: appData.status,
-                        timeline: appData.timeline,
-                        interviewDetails: appData.interviewDetails
-                    }));
-                }
-            });
-
-            // Real-time Incoming Message Alert
-            newSocket.on("receiveMessage", (incomingMsg) => {
-                const senderId = incomingMsg.sender?._id || incomingMsg.sender;
-                const currentActive = activeChatRef.current;
-
-                if (currentActive?.isOpen && currentActive?.targetUser?._id === senderId) {
-                    return;
-                }
-
-                const senderName = incomingMsg.sender?.fullname || "Recruiter";
-                toast.info(`💬 Message from ${senderName}`, {
-                    description: incomingMsg.message,
-                    action: {
-                        label: "Reply",
-                        onClick: () => setActiveChat({ isOpen: true, targetUser: incomingMsg.sender, job: incomingMsg.job })
-                    }
-                });
-            });
-
-            return () => {
-                newSocket.close();
-            };
-        } else {
-            if (socket) {
-                socket.close();
-                setSocket(null);
+        // Real-time Application Status Update in Redux
+        newSocket.on("applicationUpdated", (appData) => {
+            if (appData?._id) {
+                dispatch(updateAppliedJobStatus({
+                    applicationId: appData._id,
+                    status: appData.status,
+                    timeline: appData.timeline,
+                    interviewDetails: appData.interviewDetails
+                }));
             }
-        }
-    }, [user?._id, dispatch]);
+        });
+
+        // Real-time Incoming Message Alert
+        newSocket.on("receiveMessage", (incomingMsg) => {
+            const senderId = incomingMsg.sender?._id || incomingMsg.sender;
+            const currentActive = activeChatRef.current;
+
+            if (currentActive?.isOpen && currentActive?.targetUser?._id === senderId) {
+                return;
+            }
+
+            const senderName = incomingMsg.sender?.fullname || "Recruiter";
+            toast.info(`💬 Message from ${senderName}`, {
+                description: incomingMsg.message,
+                action: {
+                    label: "Reply",
+                    onClick: () => setActiveChat({ isOpen: true, targetUser: incomingMsg.sender, job: incomingMsg.job })
+                }
+            });
+        });
+
+        // Real-time Job Events (Adding, Updating, Deleting Opening)
+        newSocket.on("jobCreated", (newJob) => {
+            dispatch(addJobRealtime(newJob));
+            if (user?.role === "student") {
+                toast.info(`💼 New Job Opening: ${newJob.title}`, {
+                    description: `${newJob.company?.name || "A company"} just published a new opening.`,
+                });
+            }
+        });
+
+        newSocket.on("jobUpdated", (updatedJob) => {
+            dispatch(updateJobRealtime(updatedJob));
+        });
+
+        newSocket.on("jobDeleted", (data) => {
+            dispatch(deleteJobRealtime(data));
+        });
+
+        return () => {
+            newSocket.close();
+        };
+    }, [user?._id, user?.role, dispatch]);
 
     return (
         <SocketContext.Provider
@@ -139,3 +154,5 @@ export const SocketProvider = ({ children }) => {
         </SocketContext.Provider>
     );
 };
+
+export default SocketContext;

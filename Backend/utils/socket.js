@@ -144,4 +144,19 @@ export const emitApplicationUpdate = (recipientId, applicationData) => {
     }
 };
 
+export const emitJobCreated = (jobData) => {
+    if (!io) return;
+    io.emit("jobCreated", jobData);
+};
+
+export const emitJobUpdated = (jobData) => {
+    if (!io) return;
+    io.emit("jobUpdated", jobData);
+};
+
+export const emitJobDeleted = (jobId) => {
+    if (!io) return;
+    io.emit("jobDeleted", { jobId });
+};
+
 export const getIO = () => io;

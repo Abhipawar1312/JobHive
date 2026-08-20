@@ -80,24 +80,29 @@ const JobDescription = () => {
   const dispatch = useDispatch();
   const loadingBarRef = useContext(LoadingBarContext);
 
-  const applyJobHandler = async () => {
+  const checkResumeRequired = (actionName = "use this feature") => {
     if (!user) {
-      toast.error("Please login to apply for this job.");
+      toast.error(`Please login as a candidate to ${actionName}.`);
       navigate("/login");
-      return;
+      return false;
     }
 
     const hasResume = Boolean(user.profile?.resume || user.profile?.resumeOriginalName);
     if (!hasResume) {
-      toast.error("Please upload your resume in your profile before applying for jobs!", {
+      toast.error(`Please upload your resume in your profile before you can ${actionName}!`, {
         action: {
           label: "Go to Profile",
           onClick: () => navigate("/profile"),
         },
         duration: 6000,
       });
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const applyJobHandler = async () => {
+    if (!checkResumeRequired("apply for this job")) return;
 
     try {
       if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
@@ -131,11 +136,7 @@ const JobDescription = () => {
   };
 
   const handleCheckAts = async () => {
-    if (!user) {
-      toast.error("Please login as a candidate to check your AI ATS Match Score.");
-      navigate("/login");
-      return;
-    }
+    if (!checkResumeRequired("check your AI ATS Match Score")) return;
     setAtsModalOpen(true);
     if (atsResult) return;
 
@@ -157,11 +158,7 @@ const JobDescription = () => {
   };
 
   const handleTailorResume = async () => {
-    if (!user) {
-      toast.error("Please login as a candidate to generate an AI Tailored Resume.");
-      navigate("/login");
-      return;
-    }
+    if (!checkResumeRequired("generate an AI Tailored Resume")) return;
     setTailorModalOpen(true);
     if (tailorResult) return;
 
@@ -173,7 +170,7 @@ const JobDescription = () => {
         { withCredentials: true }
       );
       if (res.data.success) {
-        setTailorResult(res.data.data || res.data.tailoredResume);
+        setTailorResult(res.data.tailoredData || res.data.data || res.data.tailoredResume || res.data);
       }
     } catch (error) {
       toast.error("Failed to generate tailored resume.");
@@ -183,11 +180,7 @@ const JobDescription = () => {
   };
 
   const handleInterviewPrep = async () => {
-    if (!user) {
-      toast.error("Please login as a candidate to access the AI Interview Prep Coach.");
-      navigate("/login");
-      return;
-    }
+    if (!checkResumeRequired("access the AI Interview Prep Coach")) return;
     setPrepModalOpen(true);
     if (prepResult) return;
 
@@ -215,11 +208,7 @@ const JobDescription = () => {
   };
 
   const startMockInterview = async () => {
-    if (!user) {
-      toast.error("Please login as a candidate to practice with the AI Mock Interviewer.");
-      navigate("/login");
-      return;
-    }
+    if (!checkResumeRequired("practice with the AI Mock Interviewer")) return;
     setMockModalOpen(true);
     setMockCurrentIdx(0);
     setMockUserAnswer("");
@@ -436,14 +425,21 @@ const JobDescription = () => {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             {user?.role === "student" && (
               <Button
-                onClick={isApplied ? null : applyJobHandler}
-                disabled={isApplied}
-                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold transition-all shadow-sm ${isApplied
+                onClick={singleJob?.status === "closed" ? null : isApplied ? null : applyJobHandler}
+                disabled={isApplied || singleJob?.status === "closed"}
+                className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold transition-all shadow-sm ${
+                  singleJob?.status === "closed"
+                    ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed font-bold"
+                    : isApplied
                     ? "bg-gray-400 dark:bg-gray-700 text-white cursor-not-allowed"
                     : "bg-[#6A38C2] hover:bg-[#5b30a6] text-white font-bold"
-                  }`}
+                }`}
               >
-                {isApplied ? "✓ Already Applied" : "Apply for Job"}
+                {singleJob?.status === "closed"
+                  ? "🚫 Applications Closed"
+                  : isApplied
+                  ? "✓ Already Applied"
+                  : "Apply for Job"}
               </Button>
             )}
           </div>
@@ -496,7 +492,13 @@ const JobDescription = () => {
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Requirements & Skills</h3>
             <div className="text-sm text-gray-700 dark:text-gray-300">
               <MDEditor.Markdown
-                source={singleJob?.requirements || "No specific requirements listed."}
+                source={
+                  typeof singleJob?.requirements === "string"
+                    ? singleJob?.requirements
+                    : Array.isArray(singleJob?.requirements)
+                    ? singleJob?.requirements.map((r) => `* ${r}`).join("\n")
+                    : String(singleJob?.requirements || "No specific requirements listed.")
+                }
                 className="bg-transparent text-sm leading-relaxed"
                 style={{ backgroundColor: "transparent", color: "inherit" }}
               />

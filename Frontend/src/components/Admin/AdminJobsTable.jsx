@@ -47,6 +47,7 @@ const AdminJobsTable = () => {
           <TableRow>
             <TableHead>Company Name</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
             <TableHead className="text-right">Action</TableHead>
           </TableRow>
@@ -59,6 +60,22 @@ const AdminJobsTable = () => {
             >
               <TableCell className="font-semibold text-gray-900 dark:text-gray-100">{job?.company?.name}</TableCell>
               <TableCell className="text-gray-700 dark:text-gray-300">{job?.title}</TableCell>
+              <TableCell>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                    job?.status === "closed"
+                      ? "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                      : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      job?.status === "closed" ? "bg-red-500" : "bg-emerald-500 animate-pulse"
+                    }`}
+                  />
+                  {job?.status === "closed" ? "Closed" : "Open"}
+                </span>
+              </TableCell>
               <TableCell className="text-xs text-gray-500 font-medium">{job?.createdAt.split("T")[0]}</TableCell>
               <TableCell className="text-right">
                 <Popover>

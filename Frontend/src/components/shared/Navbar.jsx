@@ -65,7 +65,9 @@ const Navbar = () => {
             </Link>
           </li>
           <li>
-            <Link to="/admin/companies" className="hover:text-[#6A38C2] transition-colors">Companies</Link>
+            <Link to="/admin/companies" className="flex items-center gap-1 hover:text-[#6A38C2] transition-colors">
+              <Building2 className="w-4 h-4" /> {user?.profile?.company?.name || "Company Profile"}
+            </Link>
           </li>
           <li>
             <Link to="/admin/jobs" className="hover:text-[#6A38C2] transition-colors">Jobs</Link>
@@ -299,7 +301,7 @@ const Navbar = () => {
                     onClick={() => setOpen(false)}
                   >
                     <Building2 className="w-5 h-5" />
-                    <span>Companies</span>
+                    <span>{user?.profile?.company?.name || "Company Profile"}</span>
                   </Link>
                 </li>
                 <li>

@@ -37,6 +37,13 @@ export const applyJob = async (req, res) => {
             });
         }
 
+        if (job.status === "closed") {
+            return res.status(400).json({
+                message: "Applications are closed for this job opening.",
+                success: false
+            });
+        }
+
         const applicantUser = await User.findById(userId);
         if (!applicantUser?.profile?.resume) {
             return res.status(400).json({

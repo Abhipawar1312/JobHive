@@ -105,7 +105,7 @@ export const login = async (req, res) => {
             });
         }
 
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email }).populate("profile.company");
         if (!user) {
             return res.status(400).json({
                 message: "Incorrect email or password.",
@@ -255,6 +255,7 @@ export const updateProfile = async (req, res) => {
         }
 
         await user.save();
+        await user.populate("profile.company");
 
         const updatedUser = {
             _id: user._id,

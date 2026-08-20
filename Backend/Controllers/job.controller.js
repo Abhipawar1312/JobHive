@@ -1,20 +1,43 @@
 import mongoose from "mongoose";
 import { Job } from "../models/job.model.js";
+import { Company } from "../models/company.model.js";
 import { SavedJob } from "../models/savedJobs.model.js";
 import { JobAlert } from "../models/jobAlert.model.js";
 import { getCache, setCache, deleteCache, clearJobCache } from "../utils/redis.js";
+import { emitJobCreated, emitJobUpdated, emitJobDeleted } from "../utils/socket.js";
 
 // Recruiter: Post Job
 export const postJob = async (req, res) => {
     try {
-        const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
+        const { title, description, requirements, salary, location, jobType, experience, position, companyId, status } = req.body;
         const userId = req.id;
 
-        if (!title || !description || !salary || !location || !jobType || !companyId) {
+        if (!title || !description || !salary || !location || !jobType) {
             return res.status(400).json({
-                message: "Title, description, salary, location, jobType, and company are required.",
+                message: "Title, description, salary, location, and jobType are required.",
                 success: false
             });
+        }
+
+        let targetCompanyId = companyId;
+        if (!targetCompanyId) {
+            const userCompany = await Company.findOne({ userId });
+            if (!userCompany) {
+                return res.status(400).json({
+                    message: "Please register your company organization first before posting a job.",
+                    success: false
+                });
+            }
+            targetCompanyId = userCompany._id;
+        } else {
+            // Verify ownership: Recruiter can only post for their own company
+            const authorizedCompany = await Company.findOne({ _id: targetCompanyId, userId });
+            if (!authorizedCompany) {
+                return res.status(403).json({
+                    message: "Unauthorized: You can only post jobs for your registered company organization.",
+                    success: false
+                });
+            }
         }
 
         const job = await Job.create({
@@ -26,17 +49,25 @@ export const postJob = async (req, res) => {
             jobType,
             experienceLevel: experience ? Number(experience) : 0,
             position: position ? Number(position) : 1,
-            company: companyId,
+            status: status || "open",
+            company: targetCompanyId,
             created_by: userId
         });
+
+        const populatedJob = await Job.findById(job._id)
+            .populate("company")
+            .populate("applications");
 
         // Invalidate Redis job caches
         await clearJobCache();
 
+        // Broadcast real-time new job event to all candidates & recruiters
+        emitJobCreated(populatedJob || job);
+
         return res.status(201).json({
             message: "Job posted successfully!",
             success: true,
-            job
+            job: populatedJob || job
         });
     } catch (error) {
         console.error("Post Job Error:", error);
@@ -64,7 +95,9 @@ export const getAllJobs = async (req, res) => {
             limit = 50
         } = req.query;
 
-        const query = {};
+        const query = {
+            status: { $ne: "closed" }
+        };
 
         // Keyword search across title, description, requirements
         if (keyword && keyword.trim()) {
@@ -270,7 +303,7 @@ export const getAdminJobs = async (req, res) => {
 // Recruiter: Update Job
 export const updateJob = async (req, res) => {
     try {
-        const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
+        const { title, description, requirements, salary, location, jobType, experience, position, companyId, status } = req.body;
 
         const updateData = {
             title,
@@ -281,6 +314,7 @@ export const updateJob = async (req, res) => {
             jobType,
             experienceLevel: experience !== undefined ? Number(experience) : undefined,
             position: position !== undefined ? Number(position) : undefined,
+            status: status !== undefined ? status : undefined,
             company: companyId ? new mongoose.Types.ObjectId(companyId) : undefined
         };
 
@@ -300,13 +334,20 @@ export const updateJob = async (req, res) => {
             });
         }
 
+        const populatedJob = await Job.findById(job._id)
+            .populate("company")
+            .populate("applications");
+
         // Invalidate Redis caches
         await clearJobCache();
         await deleteCache(`job:${req.params.id}`);
 
+        // Broadcast real-time job update
+        emitJobUpdated(populatedJob || job);
+
         return res.status(200).json({
             message: "Job updated successfully.",
-            job,
+            job: populatedJob || job,
             success: true,
         });
     } catch (error) {
@@ -334,6 +375,9 @@ export const deleteJob = async (req, res) => {
         // Invalidate Redis caches
         await clearJobCache();
         await deleteCache(`job:${jobId}`);
+
+        // Broadcast real-time job deletion
+        emitJobDeleted(jobId);
 
         return res.status(200).json({
             message: "Job deleted successfully.",

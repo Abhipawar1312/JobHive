@@ -16,9 +16,18 @@ try {
         redisClient = new Redis(redisUrl, {
             keyPrefix: REDIS_PREFIX,
             maxRetriesPerRequest: 3,
+            keepAlive: 10000, // Send TCP keepalive probes every 10s to prevent cloud idle resets
+            connectTimeout: 10000,
             retryStrategy(times) {
-                if (times > 5) return null;
-                return Math.min(times * 200, 2000);
+                // Reconnect with exponential backoff capped at 3s
+                return Math.min(times * 200, 3000);
+            },
+            reconnectOnError(err) {
+                const targetErrors = ["READONLY", "ECONNRESET", "ETIMEDOUT"];
+                if (targetErrors.some((e) => err.message.includes(e))) {
+                    return true; // Reconnect automatically
+                }
+                return false;
             }
         });
     } else {
@@ -28,6 +37,7 @@ try {
             password: process.env.REDIS_PASSWORD || undefined,
             keyPrefix: REDIS_PREFIX,
             maxRetriesPerRequest: 1,
+            keepAlive: 10000,
             retryStrategy(times) {
                 if (times > 2) return null;
                 return Math.min(times * 200, 1000);
@@ -45,6 +55,11 @@ try {
     });
 
     redisClient.on("error", (err) => {
+        // ECONNRESET is common on cloud Redis (Upstash) when an idle socket is refreshed
+        if (err.code === "ECONNRESET" || err.message?.includes("ECONNRESET")) {
+            isRedisConnected = false;
+            return;
+        }
         if (isRedisConnected) {
             console.warn(`⚠️ [Redis] Connection warning: ${err.message}`);
         }

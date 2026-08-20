@@ -1,12 +1,10 @@
-import React, { useContext } from "react";
-import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
-import { Button } from "./ui/button";
+import React, { useContext, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setSearchedQuery } from "./redux/jobSlice";
-import Autoplay from "embla-carousel-autoplay";
 import { LoadingBarContext } from "./LoadingBarContext";
 import useGetAllJobs from "@/Hooks/useGetAllJobs";
+import { Briefcase, Sparkles } from "lucide-react";
 
 const CategoryCarousel = () => {
   useGetAllJobs();
@@ -23,44 +21,44 @@ const CategoryCarousel = () => {
     if (loadingBarRef?.current) loadingBarRef.current.complete();
   };
 
-  // Create a set of unique job titles (case-insensitive)
-  const dynamicCategories = Array.from(
-    new Map(
-      allJobs.map((job) => {
+  // Only extract unique titles of currently active/open jobs in the database
+  const liveCategories = useMemo(() => {
+    const map = new Map();
+    (allJobs || [])
+      .filter((job) => job.status !== "closed" && job.title)
+      .forEach((job) => {
         const title = job.title.trim();
-        return [title.toLowerCase(), title];
-      })
-    ).values()
-  );
+        const key = title.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, title);
+        }
+      });
+    return Array.from(map.values());
+  }, [allJobs]);
+
+  // If no jobs exist in DB, don't show an empty bar
+  if (liveCategories.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="px-4">
-      <Carousel
-        plugins={[
-          Autoplay({
-            delay: 1000,
-            stopOnInteraction: false,
-          }),
-        ]}
-        opts={{ loop: true }}
-        className="mx-auto my-20 lg:max-w-7xl"
-      >
-        <CarouselContent className="flex items-center">
-          {dynamicCategories.map((cat, index) => (
-            <CarouselItem
-              key={index}
-              className="px-2 basis-1/2 md:basis-1/3 lg:basis-1/6"
-            >
-              <button
-                onClick={() => searchJobHandler(cat)}
-                className="w-full py-2 px-3 rounded-full text-xs font-semibold border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-[#6A38C2] hover:text-white dark:hover:bg-[#6A38C2] dark:hover:text-white hover:border-[#6A38C2] shadow-sm transition-all duration-200 cursor-pointer truncate"
-              >
-                {cat}
-              </button>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+    <div className="w-full max-w-4xl mx-auto px-4 my-6 text-center">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mr-1">
+          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+          Popular Roles:
+        </span>
+        {liveCategories.map((title, index) => (
+          <button
+            key={index}
+            onClick={() => searchJobHandler(title)}
+            className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 hover:border-[#6A38C2] hover:bg-purple-50/60 dark:hover:bg-purple-950/40 text-gray-700 dark:text-gray-200 hover:text-[#6A38C2] dark:hover:text-purple-300 shadow-sm transition-all duration-200 cursor-pointer"
+          >
+            <Briefcase className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+            <span>{title}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,44 +1,25 @@
 import React, { useContext, useEffect, useState } from "react";
-import { LoadingBarContext } from "../LoadingBarContext";
-import { useForm, Controller } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { toast } from "sonner";
+import { useSelector } from "react-redux";
 import axios from "axios";
 import { AI_API_END_POINT, JOB_API_END_POINT } from "@/utils/constant";
-import { Sparkles } from "lucide-react";
-import { useSelector } from "react-redux";
+import { toast } from "sonner";
+import { useNavigate, useParams } from "react-router-dom";
+import { Loader2, Sparkles, ArrowLeft, Building2 } from "lucide-react";
 import useGetAllCompanies from "@/Hooks/useGetAllCompanies";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
+import { LoadingBarContext } from "../LoadingBarContext";
+import { useForm, Controller } from "react-hook-form";
 import MDEditor from "@uiw/react-md-editor";
 
-const cn = (...classes) => classes.filter(Boolean).join(" ");
-
 const PostJobs = () => {
+  useGetAllCompanies();
+  const params = useParams();
+  const jobId = params.jobId || params.id;
   const navigate = useNavigate();
-  const { jobId } = useParams(); // Grab jobId from URL
   const { companies } = useSelector((store) => store.company);
   const loadingBarRef = useContext(LoadingBarContext);
-  const [open, setOpen] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const isEditMode = Boolean(jobId);
 
@@ -47,6 +28,7 @@ const PostJobs = () => {
     handleSubmit,
     control,
     setValue,
+    reset,
     watch,
     formState: { errors, isSubmitting, isSubmitted },
   } = useForm({
@@ -58,16 +40,22 @@ const PostJobs = () => {
       location: "",
       jobType: "",
       experience: "",
-      position: 0,
+      position: 1,
+      status: "open",
       companyId: "",
     },
   });
 
-  // Watch companyId to show the selected company in the popover button
   const selectedCompanyId = watch("companyId");
-  const selectedCompany = companies.find(
+  const selectedCompany = companies?.find(
     (company) => company._id === selectedCompanyId
-  );
+  ) || (companies && companies.length > 0 ? companies[0] : null);
+
+  useEffect(() => {
+    if (companies && companies.length > 0 && !selectedCompanyId && !isEditMode) {
+      setValue("companyId", companies[0]._id);
+    }
+  }, [companies, selectedCompanyId, setValue, isEditMode]);
 
   const generateWithAi = async () => {
     const title = watch("title");
@@ -115,15 +103,24 @@ const PostJobs = () => {
           );
           if (res.data.success) {
             const job = res.data.job;
-            setValue("title", job.title);
-            setValue("description", job.description);
-            setValue("requirements", job.requirements);
-            setValue("salary", job.salary);
-            setValue("location", job.location);
-            setValue("jobType", job.jobType);
-            setValue("experience", job.experienceLevel);
-            setValue("position", job.position);
-            setValue("companyId", job.company._id);
+            const reqFormatted = typeof job.requirements === "string"
+              ? job.requirements
+              : Array.isArray(job.requirements)
+              ? job.requirements.join("\n")
+              : "";
+
+            reset({
+              title: job.title || "",
+              description: job.description || "",
+              requirements: reqFormatted,
+              salary: job.salary || "",
+              location: job.location || "",
+              jobType: job.jobType || "",
+              experience: job.experienceLevel ?? "",
+              position: job.position || 1,
+              status: job.status || "open",
+              companyId: job.company?._id || job.company || "",
+            });
           } else {
             toast.error("Failed to fetch job details");
           }
@@ -137,18 +134,21 @@ const PostJobs = () => {
       };
       fetchJobDetails();
     }
-  }, [jobId, isEditMode, loadingBarRef, setValue]);
+  }, [jobId, isEditMode, loadingBarRef, reset]);
 
   const onSubmit = async (data) => {
-    if (!data.companyId) {
+    const finalCompanyId = data.companyId || selectedCompany?._id;
+    if (!finalCompanyId) {
+      toast.error("Please register your company organization first before posting a job.");
       return;
     }
     try {
+      const payload = { ...data, companyId: finalCompanyId };
       const url = isEditMode
         ? `${JOB_API_END_POINT}/update/${jobId}`
         : `${JOB_API_END_POINT}/post`;
       const method = isEditMode ? "put" : "post";
-      const res = await axios[method](url, data, {
+      const res = await axios[method](url, payload, {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
       });
@@ -179,13 +179,31 @@ const PostJobs = () => {
           </span>
         </div>
 
-        {/* Top Title & AI Assistant Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        {/* Top Title & Organization Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            {selectedCompany && (
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1 flex items-center justify-center shadow-sm shrink-0">
+                  {selectedCompany.logo ? (
+                    <img
+                      src={selectedCompany.logo}
+                      alt={selectedCompany.name}
+                      className="w-8 h-8 object-contain rounded-lg"
+                    />
+                  ) : (
+                    <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  )}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight">
+                  {selectedCompany.name}
+                </h2>
+              </div>
+            )}
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               {isEditMode ? "Update Job Posting" : "Post a New Job Opening"}
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Fill in the role details, requirements, compensation, and qualifications.
             </p>
           </div>
@@ -199,6 +217,20 @@ const PostJobs = () => {
             {isAiGenerating ? "AI Writing JD..." : "Auto-Draft with AI"}
           </button>
         </div>
+
+        {!selectedCompany && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between gap-3">
+            <span>Please register your company organization before posting a job.</span>
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => navigate("/admin/companies/create")}
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs h-8 shrink-0"
+            >
+              Register Company
+            </Button>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -336,61 +368,61 @@ const PostJobs = () => {
             </div>
           </div>
 
-          {/* Company Selection */}
+          {/* Job Opening Status (Active Hiring / Closed) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Hiring Company</Label>
-            {companies.length > 0 ? (
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="justify-between w-full h-11 text-xs rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
-                  >
-                    {selectedCompany ? selectedCompany.name : "Select Company"}
-                    <ChevronsUpDown className="w-4 h-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-                  <Command>
-                    <CommandInput placeholder="Search company..." className="h-10 text-xs" />
-                    <CommandList>
-                      <CommandEmpty>No company found.</CommandEmpty>
-                      <CommandGroup>
-                        {companies.map((company) => (
-                          <CommandItem
-                            key={company._id}
-                            value={company.name.toLowerCase()}
-                            onSelect={() => {
-                              setValue("companyId", company._id);
-                              setOpen(false);
-                            }}
-                            className="cursor-pointer text-xs"
-                          >
-                            {company.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              <p className="text-xs text-amber-500 font-medium">
-                *Please register a company first in the Companies tab before posting a job.
-              </p>
-            )}
-            {isSubmitted && !selectedCompanyId && (
-              <p className="text-[11px] text-red-500 font-medium">Please select a company.</p>
-            )}
+            <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Job Opening Status</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                className={`flex items-center gap-2.5 p-3 rounded-2xl border cursor-pointer transition-all ${
+                  watch("status") === "open"
+                    ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  value="open"
+                  {...register("status")}
+                  className="sr-only"
+                />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs">Active / Open</span>
+                  <span className="text-[10px] font-normal text-emerald-600/80 dark:text-emerald-400/80">
+                    Visible to candidates & accepting applications
+                  </span>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-center gap-2.5 p-3 rounded-2xl border cursor-pointer transition-all ${
+                  watch("status") === "closed"
+                    ? "border-red-500 bg-red-50/60 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-bold shadow-sm"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  value="closed"
+                  {...register("status")}
+                  className="sr-only"
+                />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs">Closed / Paused</span>
+                  <span className="text-[10px] font-normal text-red-600/80 dark:text-red-400/80">
+                    Hidden from candidate searches & feeds
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
 
           {/* Submit Button */}
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={isSubmitting || companies.length === 0}
+              disabled={isSubmitting || !selectedCompany}
               className="w-full bg-[#6A38C2] hover:bg-[#5b30a6] text-white py-2.5 rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 transition-all duration-200 cursor-pointer h-11"
             >
               {isSubmitting ? (

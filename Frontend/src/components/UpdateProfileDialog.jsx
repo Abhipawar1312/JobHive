@@ -204,7 +204,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                 id="name"
                 name="fullname"
                 type="text"
-                placeholder="e.g. Abhishek Pawar"
+                placeholder="e.g. Alex Johnson"
                 value={input.fullname}
                 onChange={changeEventHandler}
                 className="text-xs rounded-xl h-10"
