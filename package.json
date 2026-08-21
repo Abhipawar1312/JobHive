@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon Backend/index.js",
-    "build": "npm install && npm install --prefix Frontend && npm run build --prefix Frontend",
+    "build": "npm install && npm install --prefix Backend && npm install --prefix Frontend && npm run build --prefix Frontend",
     "start": "node Backend/index.js"
   },
   "keywords": [],
@@ -22,6 +22,7 @@
     "datauri": "^4.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
@@ -33,6 +34,8 @@
     "nodemon": "^3.1.4",
     "pdf-parse": "^2.4.5",
     "rate-limit-redis": "^6.0.1",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "winston": "^3.19.0",
+    "zod": "^4.4.3"
   }
 }
