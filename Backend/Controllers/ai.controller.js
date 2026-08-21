@@ -76,7 +76,11 @@ export const analyzeResumeMatch = async (req, res) => {
         }
 
         // Rule-Based Heuristic Fallback if no API key or AI error
-        const jobReqWords = (jobReqs + " " + jobDesc + " " + (resumeText || "")).toLowerCase();
+        const candidateSkills = user.profile?.skills || [];
+        const jobTitle = job.title || "Target Role";
+        const jobDesc = job.description || "";
+        const jobReqs = job.requirements || "";
+        const jobReqWords = (jobReqs + " " + jobDesc).toLowerCase();
         const matched = [];
         const missing = [];
 

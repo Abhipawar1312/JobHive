@@ -1,23 +1,21 @@
-// appRouter.js
 import React, { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import RootLayout from "./RootLayout";
 import ProtectedRoute from "./Admin/ProtectedRoute";
 
-import Home from "./Home";
-import Login from "./auth/Login";
-import Signup from "./auth/Signup";
-import ForgotPassword from "./auth/ForgotPassword";
-import RecruiterDashboard from "./Admin/RecruiterDashboard";
-
-// Lazy load other components
+// Route-level code-splitting (Lazy loading)
+const Home = lazy(() => import("./Home"));
+const Login = lazy(() => import("./auth/Login"));
+const Signup = lazy(() => import("./auth/Signup"));
+const ForgotPassword = lazy(() => import("./auth/ForgotPassword"));
 const Jobs = lazy(() => import("./Jobs"));
 const Browse = lazy(() => import("./Browse"));
 const Profile = lazy(() => import("./Profile"));
 const JobDescription = lazy(() => import("./JobDescription"));
 const SavedJobs = lazy(() => import("./SavedJobs"));
 
-// Lazy load other admin components
+// Admin / Recruiter routes code-splitting
+const RecruiterDashboard = lazy(() => import("./Admin/RecruiterDashboard"));
 const Companies = lazy(() => import("./Admin/Companies"));
 const CompanyCreate = lazy(() => import("./Admin/CompanyCreate"));
 const CompanySetup = lazy(() => import("./Admin/CompanySetup"));
@@ -28,7 +26,7 @@ const Applicants = lazy(() => import("./Admin/Applicants"));
 const appRouter = createBrowserRouter([
   {
     path: "/",
-    element: <RootLayout />, // Layout that includes Navbar and an Outlet
+    element: <RootLayout />,
     children: [
       { index: true, element: <Home /> },
       { path: "login", element: <Login /> },

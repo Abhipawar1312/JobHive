@@ -1,23 +1,24 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import https from "https";
 import http from "http";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { sendPasswordResetEmail } from "../utils/emailService.js";
+import {
+    generateTokens,
+    setTokenCookies,
+    clearTokenCookies,
+    verifyRefreshToken,
+    revokeRefreshToken,
+    revokeAllUserTokens
+} from "../utils/token.js";
+import logger from "../utils/logger.js";
 
 export const register = async (req, res) => {
     try {
         const { fullname, email, phoneNumber, password, role } = req.body;
-
-        if (!fullname || !email || !phoneNumber || !password || !role) {
-            return res.status(400).json({
-                message: "Please fill in all required fields.",
-                success: false
-            });
-        }
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -43,7 +44,7 @@ export const register = async (req, res) => {
                 const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
                 profilePhotoUrl = cloudResponse.secure_url;
             } catch (uploadError) {
-                console.error("Cloudinary upload failed:", uploadError);
+                logger.error("Cloudinary upload failed during registration", { error: uploadError.message });
             }
         }
 
@@ -60,6 +61,15 @@ export const register = async (req, res) => {
             }
         });
 
+        // Generate Dual Tokens (Access + Refresh Token in Redis)
+        const { accessToken, refreshToken } = await generateTokens(newUser);
+        setTokenCookies(res, accessToken, refreshToken);
+
+        logger.info(`User registered successfully: ${newUser.email} [${newUser.role}]`, {
+            userId: newUser._id,
+            correlationId: req.correlationId
+        });
+
         return res.status(201).json({
             message: "Account created successfully.",
             success: true,
@@ -67,11 +77,14 @@ export const register = async (req, res) => {
                 _id: newUser._id,
                 fullname: newUser.fullname,
                 email: newUser.email,
-                role: newUser.role
-            }
+                role: newUser.role,
+                phoneNumber: newUser.phoneNumber,
+                profile: newUser.profile
+            },
+            accessToken
         });
     } catch (error) {
-        console.error("Register Error:", error);
+        logger.error("Register Error", { error: error.message, stack: error.stack, correlationId: req.correlationId });
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || "field";
             if (field === "phoneNumber") {
@@ -98,13 +111,6 @@ export const login = async (req, res) => {
     try {
         const { email, password, role } = req.body;
 
-        if (!email || !password || !role) {
-            return res.status(400).json({
-                message: "Please provide email, password, and role.",
-                success: false
-            });
-        }
-
         let user = await User.findOne({ email }).populate("profile.company");
         if (!user) {
             return res.status(400).json({
@@ -128,11 +134,9 @@ export const login = async (req, res) => {
             });
         }
 
-        const tokenData = {
-            userId: user._id,
-            role: user.role
-        };
-        const token = jwt.sign(tokenData, process.env.SECRET_KEY, { expiresIn: '7d' });
+        // Generate Dual Tokens (Access 15m + Refresh 7d in Redis)
+        const { accessToken, refreshToken } = await generateTokens(user);
+        setTokenCookies(res, accessToken, refreshToken);
 
         const userData = {
             _id: user._id,
@@ -143,21 +147,20 @@ export const login = async (req, res) => {
             profile: user.profile
         };
 
-        const cookieOptions = {
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            secure: process.env.NODE_ENV === "production"
-        };
+        logger.info(`User logged in: ${user.email} [${user.role}]`, {
+            userId: user._id,
+            correlationId: req.correlationId
+        });
 
-        return res.status(200).cookie("token", token, cookieOptions).json({
+        return res.status(200).json({
             message: `Welcome back, ${user.fullname}!`,
             user: userData,
-            token,
+            accessToken,
+            token: accessToken, // backward compatibility
             success: true
         });
     } catch (error) {
-        console.error("Login Error:", error);
+        logger.error("Login Error", { error: error.message, correlationId: req.correlationId });
         return res.status(500).json({
             message: error.message || "Server error during login",
             success: false
@@ -165,14 +168,96 @@ export const login = async (req, res) => {
     }
 };
 
+/**
+ * Refresh Access Token using Refresh Token from Cookie or Body
+ */
+export const refreshTokenController = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+        if (!refreshToken) {
+            return res.status(401).json({
+                message: "Refresh token is missing. Please log in again.",
+                code: "NO_REFRESH_TOKEN",
+                success: false
+            });
+        }
+
+        const decoded = await verifyRefreshToken(refreshToken);
+        if (!decoded || !decoded.userId) {
+            clearTokenCookies(res);
+            return res.status(401).json({
+                message: "Invalid or expired session. Please log in again.",
+                code: "INVALID_REFRESH_TOKEN",
+                success: false
+            });
+        }
+
+        const user = await User.findById(decoded.userId).populate("profile.company");
+        if (!user) {
+            clearTokenCookies(res);
+            return res.status(404).json({
+                message: "User account not found.",
+                success: false
+            });
+        }
+
+        // Revoke the old refresh token and generate a fresh rotating pair
+        await revokeRefreshToken(decoded.userId, decoded.tokenId);
+        const { accessToken, refreshToken: newRefreshToken } = await generateTokens(user);
+        setTokenCookies(res, accessToken, newRefreshToken);
+
+        logger.info(`Tokens refreshed successfully for user: ${user.email}`, {
+            userId: user._id,
+            correlationId: req.correlationId
+        });
+
+        return res.status(200).json({
+            message: "Session refreshed successfully.",
+            accessToken,
+            token: accessToken,
+            user: {
+                _id: user._id,
+                fullname: user.fullname,
+                email: user.email,
+                role: user.role,
+                phoneNumber: user.phoneNumber,
+                profile: user.profile
+            },
+            success: true
+        });
+    } catch (error) {
+        logger.error("Token Refresh Error", { error: error.message, correlationId: req.correlationId });
+        clearTokenCookies(res);
+        return res.status(500).json({
+            message: "Failed to refresh session.",
+            success: false
+        });
+    }
+};
+
 export const logout = async (req, res) => {
     try {
-        return res.status(200).cookie("token", "", { maxAge: 0 }).json({
+        const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+        if (refreshToken) {
+            const decoded = await verifyRefreshToken(refreshToken);
+            if (decoded && decoded.userId && decoded.tokenId) {
+                await revokeRefreshToken(decoded.userId, decoded.tokenId);
+            }
+        }
+
+        clearTokenCookies(res);
+
+        logger.info("User logged out and session cleared", { correlationId: req.correlationId });
+
+        return res.status(200).json({
             message: "Logged out successfully.",
             success: true
         });
     } catch (error) {
-        console.error("Logout Error:", error);
+        logger.error("Logout Error", { error: error.message, correlationId: req.correlationId });
+        clearTokenCookies(res);
         return res.status(500).json({
             message: "Server error during logout",
             success: false
@@ -211,7 +296,7 @@ export const updateProfile = async (req, res) => {
                     unique_filename: true,
                 });
             } catch (uploadError) {
-                console.error("File upload error:", uploadError);
+                logger.error("File upload error during profile update", { error: uploadError.message });
             }
         }
 
@@ -245,7 +330,6 @@ export const updateProfile = async (req, res) => {
         if (skillsArray) user.profile.skills = skillsArray;
 
         if (cloudResponse) {
-            // Check if file is PDF or image
             if (file.mimetype.includes("pdf")) {
                 user.profile.resume = cloudResponse.secure_url;
                 user.profile.resumeOriginalName = file.originalname;
@@ -266,27 +350,17 @@ export const updateProfile = async (req, res) => {
             profile: user.profile
         };
 
+        logger.info(`Profile updated for user: ${user.email}`, { userId: user._id, correlationId: req.correlationId });
+
         return res.status(200).json({
             message: "Profile updated successfully.",
             user: updatedUser,
             success: true
         });
     } catch (error) {
-        console.error("Update Profile Error:", error);
+        logger.error("Update Profile Error", { error: error.message, correlationId: req.correlationId });
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || "field";
-            if (field === "phoneNumber") {
-                return res.status(400).json({
-                    message: "This phone number is already registered with another account.",
-                    success: false
-                });
-            }
-            if (field === "email") {
-                return res.status(400).json({
-                    message: "This email address is already associated with another account.",
-                    success: false
-                });
-            }
             return res.status(400).json({
                 message: `The provided ${field} is already in use by another user.`,
                 success: false
@@ -303,12 +377,6 @@ export const updateProfile = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        if (!email) {
-            return res.status(400).json({
-                message: "Email is required.",
-                success: false
-            });
-        }
 
         const user = await User.findOne({ email });
         if (!user) {
@@ -328,12 +396,14 @@ export const forgotPassword = async (req, res) => {
 
         await sendPasswordResetEmail(user.email, otp);
 
+        logger.info(`Password reset OTP requested for ${email}`, { correlationId: req.correlationId });
+
         return res.status(200).json({
             message: "A 6-digit password reset OTP has been sent to your email.",
             success: true
         });
     } catch (error) {
-        console.error("Forgot Password Error:", error);
+        logger.error("Forgot Password Error", { error: error.message, correlationId: req.correlationId });
         return res.status(500).json({
             message: "Error processing password reset request",
             success: false
@@ -345,12 +415,6 @@ export const forgotPassword = async (req, res) => {
 export const verifyResetOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
-        if (!email || !otp) {
-            return res.status(400).json({
-                message: "Email and 6-digit OTP code are required.",
-                success: false
-            });
-        }
 
         const hashedOtp = crypto.createHash("sha256").update(otp.trim()).digest("hex");
 
@@ -372,7 +436,7 @@ export const verifyResetOtp = async (req, res) => {
         const hashedResetSessionToken = crypto.createHash("sha256").update(resetSessionToken).digest("hex");
 
         user.resetPasswordToken = hashedResetSessionToken;
-        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes to choose new password
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
 
         return res.status(200).json({
@@ -381,7 +445,7 @@ export const verifyResetOtp = async (req, res) => {
             success: true
         });
     } catch (error) {
-        console.error("Verify OTP Error:", error);
+        logger.error("Verify OTP Error", { error: error.message, correlationId: req.correlationId });
         return res.status(500).json({
             message: "Error verifying OTP code",
             success: false
@@ -389,23 +453,10 @@ export const verifyResetOtp = async (req, res) => {
     }
 };
 
-// Step 3: Reset Password — verify resetToken / OTP and update password
+// Step 3: Reset Password — verify resetToken / OTP, update password, and revoke existing sessions
 export const resetPassword = async (req, res) => {
     try {
         const { email, resetToken, otp, newPassword } = req.body;
-        if (!email || (!resetToken && !otp) || !newPassword) {
-            return res.status(400).json({
-                message: "Email, authorization token, and new password are required.",
-                success: false
-            });
-        }
-
-        if (newPassword.length < 6) {
-            return res.status(400).json({
-                message: "Password must be at least 6 characters long.",
-                success: false
-            });
-        }
 
         const tokenToVerify = (resetToken || otp).trim();
         const hashedToken = crypto.createHash("sha256").update(tokenToVerify).digest("hex");
@@ -428,12 +479,20 @@ export const resetPassword = async (req, res) => {
         user.resetPasswordExpires = undefined;
         await user.save();
 
+        // Revoke all existing sessions across devices for security
+        await revokeAllUserTokens(user._id);
+
+        logger.info(`Password successfully reset for user ${email}. All sessions revoked.`, {
+            userId: user._id,
+            correlationId: req.correlationId
+        });
+
         return res.status(200).json({
             message: "Password has been reset successfully! Please log in with your new password.",
             success: true
         });
     } catch (error) {
-        console.error("Reset Password Error:", error);
+        logger.error("Reset Password Error", { error: error.message, correlationId: req.correlationId });
         return res.status(500).json({
             message: "Error resetting password",
             success: false
@@ -443,7 +502,7 @@ export const resetPassword = async (req, res) => {
 
 export const getCurrentUser = async (req, res) => {
     try {
-        const user = await User.findById(req.id).select("-password");
+        const user = await User.findById(req.id).select("-password").populate("profile.company");
         if (!user) {
             return res.status(404).json({
                 message: "User not found",
@@ -455,6 +514,7 @@ export const getCurrentUser = async (req, res) => {
             success: true
         });
     } catch (error) {
+        logger.error("Get Current User Error", { error: error.message, correlationId: req.correlationId });
         return res.status(500).json({
             message: "Server error",
             success: false
@@ -487,13 +547,13 @@ export const streamResumePdf = async (req, res) => {
             }
             streamRes.pipe(res);
         }).on("error", (err) => {
-            console.error("PDF stream error:", err);
+            logger.error("PDF stream error", { error: err.message });
             if (!res.headersSent) {
                 res.status(500).send("Error streaming PDF");
             }
         });
     } catch (error) {
-        console.error("Resume stream endpoint error:", error);
+        logger.error("Resume stream endpoint error", { error: error.message });
         if (!res.headersSent) {
             res.status(500).send("Internal Server Error");
         }

@@ -6,11 +6,14 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 import path from "path";
+import fs from "fs";
 
 import connectDB from "./utils/db.js";
 import { initSocket } from "./utils/socket.js";
-import { authLimiter, aiLimiter, generalLimiter } from "./utils/redis.js";
+import { authLimiter, aiLimiter, generalLimiter, isRedisConnected } from "./utils/redis.js";
+import logger, { correlationMiddleware, requestLogger } from "./utils/logger.js";
 
 import userRoute from "./routes/user.route.js";
 import companyRoute from "./routes/company.route.js";
@@ -24,6 +27,12 @@ import messageRoute from "./routes/message.route.js";
 const app = express();
 const server = http.createServer(app);
 
+// Distributed Tracing & Correlation ID
+app.use(correlationMiddleware);
+
+// Structured HTTP Request Logging
+app.use(requestLogger);
+
 // Security Headers with Helmet (Allowing cross-origin iframe preview for resumes)
 app.use(
     helmet({
@@ -33,10 +42,24 @@ app.use(
     })
 );
 
-// Global Middleware
+// Global Body Parsing
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// NoSQL Injection Sanitization (strips '$' and '.' in inputs)
+app.use(
+    mongoSanitize({
+        replaceWith: "_",
+        onSanitize: ({ req, key }) => {
+            logger.warn(`NoSQL Injection attempt sanitized on key: ${key}`, {
+                ip: req.ip,
+                url: req.originalUrl,
+                correlationId: req.correlationId,
+            });
+        },
+    })
+);
 
 const allowedOrigins = [
     "http://localhost:5173",
@@ -57,6 +80,19 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Health & Readiness Endpoints for Production Monitoring
+app.get("/healthz", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.get("/readyz", (req, res) => {
+    res.status(200).json({
+        status: "ready",
+        redis: isRedisConnected ? "connected" : "in-memory-fallback",
+        timestamp: new Date().toISOString(),
+    });
+});
+
 // Apply Rate Limiters
 app.use("/api/v1/user/login", authLimiter);
 app.use("/api/v1/user/register", authLimiter);
@@ -75,8 +111,6 @@ app.use("/api/v1/savedjobs", savedJobRoute);
 app.use("/api/v1/ai", aiRoute);
 app.use("/api/v1/notifications", notificationRoute);
 app.use("/api/v1/messages", messageRoute);
-
-import fs from "fs";
 
 const __dirname = path.resolve();
 const frontendDistPath = fs.existsSync(path.join(__dirname, "Frontend", "dist"))
@@ -97,11 +131,19 @@ if (fs.existsSync(frontendDistPath)) {
     });
 }
 
-// Centralized Error Handling Middleware
+// Centralized Error Handling Middleware with Structured Logging
 app.use((err, req, res, next) => {
-    console.error("Unhandled Server Error:", err);
+    logger.error("Unhandled Server Error", {
+        message: err.message,
+        stack: err.stack,
+        url: req.originalUrl,
+        method: req.method,
+        correlationId: req.correlationId,
+    });
+
     res.status(err.status || 500).json({
         message: err.message || "Internal Server Error",
+        correlationId: req.correlationId,
         success: false,
     });
 });
@@ -110,13 +152,13 @@ const PORT = process.env.PORT || 8000;
 
 server.listen(PORT, () => {
     connectDB();
-    console.log(`🚀 JobHive Server & Sockets running`);
+    logger.info(`🚀 JobHive Server & Sockets running on port ${PORT}`);
     if (process.env.GEMINI_API_KEY) {
-        console.log(`🤖 Google Gemini AI active`);
+        logger.info(`🤖 Google Gemini AI active`);
     }
     if (process.env.SENDGRID_API_KEY) {
-        console.log(`📧 SendGrid Real Email Provider active`);
+        logger.info(`📧 SendGrid Real Email Provider active`);
     } else if (process.env.MAILTRAP_SMTP_USER) {
-        console.log(`📧 Mailtrap SMTP connected`);
+        logger.info(`📧 Mailtrap SMTP connected`);
     }
 });

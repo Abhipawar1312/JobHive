@@ -12,6 +12,7 @@ import useGetAllCompanies from "@/Hooks/useGetAllCompanies";
 import { LoadingBarContext } from "../LoadingBarContext";
 import { useForm, Controller } from "react-hook-form";
 import MDEditor from "@uiw/react-md-editor";
+import { sanitizeMarkdown } from "@/utils/sanitize";
 
 const PostJobs = () => {
   useGetAllCompanies();
@@ -281,6 +282,9 @@ const PostJobs = () => {
                   <MDEditor
                     value={field.value}
                     onChange={field.onChange}
+                    previewOptions={{
+                      rehypePlugins: [],
+                    }}
                     textareaProps={{
                       placeholder: "Enter responsibilities, tech stack, and qualifications here...",
                     }}

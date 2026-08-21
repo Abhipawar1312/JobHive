@@ -2,13 +2,14 @@ import React, { useContext, useEffect, useState } from "react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import { APPLICATION_API_END_POINT, JOB_API_END_POINT, AI_API_END_POINT } from "@/utils/constant";
 import { setSingleJob } from "./redux/jobSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { LoadingBarContext } from "./LoadingBarContext";
 import MDEditor from "@uiw/react-md-editor";
+import { sanitizeMarkdown } from "@/utils/sanitize";
 import confetti from "canvas-confetti";
 import {
   Sparkles,
@@ -79,6 +80,7 @@ const JobDescription = () => {
   const jobId = params.id;
   const dispatch = useDispatch();
   const loadingBarRef = useContext(LoadingBarContext);
+  const [jobLoading, setJobLoading] = useState(!singleJob || singleJob._id !== jobId);
 
   const checkResumeRequired = (actionName = "use this feature") => {
     if (!user) {
@@ -353,14 +355,14 @@ const JobDescription = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const fetchSingleJob = async () => {
       try {
+        setJobLoading(true);
         if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
-        const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
-          withCredentials: true,
-        });
+        const res = await apiClient.get(`${JOB_API_END_POINT}/get/${jobId}`);
 
-        if (res.data.success) {
+        if (res.data?.success && isMounted) {
           dispatch(setSingleJob(res.data.job));
           setIsApplied(
             res.data.job.applications?.some(
@@ -372,13 +374,55 @@ const JobDescription = () => {
           );
         }
       } catch (error) {
-        console.error("Axios error:", error);
+        if (isMounted) console.error("Error fetching job details:", error);
       } finally {
+        if (isMounted) setJobLoading(false);
         if (loadingBarRef?.current) loadingBarRef.current.complete();
       }
     };
-    fetchSingleJob();
+    if (jobId) {
+      fetchSingleJob();
+    }
+    return () => {
+      isMounted = false;
+    };
   }, [jobId, dispatch, user?._id]);
+
+  if (jobLoading && (!singleJob || singleJob._id !== jobId)) {
+    return (
+      <div className="px-3 sm:px-4 mx-auto my-6 sm:my-8 max-w-5xl space-y-6">
+        {/* Banner Skeleton */}
+        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-xl animate-pulse space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-800" />
+            <div className="space-y-2 flex-1">
+              <div className="h-4 w-28 bg-gray-200 dark:bg-gray-800 rounded" />
+              <div className="h-6 w-60 bg-gray-200 dark:bg-gray-800 rounded" />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <div className="h-6 w-24 bg-gray-200 dark:bg-gray-800 rounded-full" />
+            <div className="h-6 w-24 bg-gray-200 dark:bg-gray-800 rounded-full" />
+            <div className="h-6 w-24 bg-gray-200 dark:bg-gray-800 rounded-full" />
+          </div>
+        </div>
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-xl animate-pulse space-y-4">
+            <div className="h-5 w-36 bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-5/6 bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-4/6 bg-gray-200 dark:bg-gray-800 rounded" />
+          </div>
+          <div className="p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-xl animate-pulse space-y-4">
+            <div className="h-5 w-32 bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-800 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-3 sm:px-4 mx-auto my-6 sm:my-8 max-w-5xl">
@@ -492,13 +536,13 @@ const JobDescription = () => {
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Requirements & Skills</h3>
             <div className="text-sm text-gray-700 dark:text-gray-300">
               <MDEditor.Markdown
-                source={
+                source={sanitizeMarkdown(
                   typeof singleJob?.requirements === "string"
                     ? singleJob?.requirements
                     : Array.isArray(singleJob?.requirements)
                     ? singleJob?.requirements.map((r) => `* ${r}`).join("\n")
                     : String(singleJob?.requirements || "No specific requirements listed.")
-                }
+                )}
                 className="bg-transparent text-sm leading-relaxed"
                 style={{ backgroundColor: "transparent", color: "inherit" }}
               />
