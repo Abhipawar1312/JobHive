@@ -1,13 +1,14 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const getGeminiModel = () => {
+const GEMINI_MODEL = "gemini-3.6-flash";
+
+const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
-    const genAI = new GoogleGenerativeAI(apiKey);
-    return genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
+    return new GoogleGenAI({ apiKey });
 };
 
 /**
@@ -45,8 +46,8 @@ export const evaluateResumeWithGemini = async (user, job) => {
             }
         }
 
-        const model = getGeminiModel();
-        if (!model) {
+        const client = getGeminiClient();
+        if (!client) {
             console.warn("Gemini API Key missing, unable to run AI ATS evaluation.");
             return null;
         }
@@ -78,21 +79,27 @@ Respond with ONLY valid JSON with no markdown code fences:
 }
 `;
 
-        const contentParts = [];
+        let rawText;
         if (base64Pdf) {
-            contentParts.push({
-                inlineData: {
-                    data: base64Pdf,
-                    mimeType: "application/pdf"
-                }
-            });
+            rawText = await client.models.generateContent({
+                model: GEMINI_MODEL,
+                contents: [
+                    {
+                        inlineData: {
+                            data: base64Pdf,
+                            mimeType: "application/pdf"
+                        }
+                    },
+                    { text: prompt }
+                ]
+            }).then(r => r.text);
         } else {
-            contentParts.push(`CANDIDATE PROFILE:\n- Skills: ${candidateSkills.join(", ") || "None listed"}\n- Bio: ${candidateBio || "None provided"}`);
+            rawText = await client.models.generateContent({
+                model: GEMINI_MODEL,
+                contents: `CANDIDATE PROFILE:\n- Skills: ${candidateSkills.join(", ") || "None listed"}\n- Bio: ${candidateBio || "None provided"}\n\n${prompt}`
+            }).then(r => r.text);
         }
-        contentParts.push(prompt);
-
-        const result = await model.generateContent(contentParts);
-        const responseText = result.response.text().trim();
+        const responseText = rawText.trim();
         const cleanedJson = responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
         const parsed = JSON.parse(cleanedJson);
 

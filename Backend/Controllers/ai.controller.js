@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { createRequire } from "module";
@@ -14,11 +14,34 @@ const pdf = require("pdf-parse");
 
 dotenv.config();
 
-const getGeminiModel = () => {
+const GEMINI_MODEL = "gemini-3.6-flash";
+
+const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
-    const genAI = new GoogleGenerativeAI(apiKey);
-    return genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
+    return new GoogleGenAI({ apiKey });
+};
+
+// Wrapper: generate text content (string prompt)
+const generateText = async (prompt) => {
+    const ai = getGeminiClient();
+    if (!ai) return null;
+    const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt
+    });
+    return response.text;
+};
+
+// Wrapper: generate content with multimodal parts (PDF + text)
+const generateWithParts = async (parts) => {
+    const ai = getGeminiClient();
+    if (!ai) return null;
+    const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: parts
+    });
+    return response.text;
 };
 
 // 1. AI Resume & Job Matcher (ATS Score)
@@ -128,10 +151,7 @@ export const generateJobDescription = async (req, res) => {
             return res.status(400).json({ message: "Job title is required", success: false });
         }
 
-        const model = getGeminiModel();
-
-        if (model) {
-            const prompt = `
+        const prompt = `
 You are an expert tech recruiter. Write a comprehensive, attractive, professional Job Description for:
 Job Title: ${title}
 Company: ${companyName || "Our Company"}
@@ -144,16 +164,17 @@ Format the response in clean Markdown with sections:
 ### Requirements & Qualifications
 ### What We Offer
 `;
-            try {
-                const result = await model.generateContent(prompt);
+        try {
+            const text = await generateText(prompt);
+            if (text) {
                 return res.status(200).json({
                     success: true,
-                    description: result.response.text().trim(),
+                    description: text.trim(),
                     aiPowered: true
                 });
-            } catch (err) {
-                console.error("AI JD Gen Error:", err);
             }
+        } catch (err) {
+            console.error("AI JD Gen Error:", err);
         }
 
         // Fallback JD Template
@@ -212,9 +233,7 @@ export const generateInterviewQuestions = async (req, res) => {
             }
         }
 
-        const model = getGeminiModel();
-
-        if (model) {
+        if (getGeminiClient()) {
             const prompt = `
 You are an expert Senior Technical Hiring Manager and Elite Interview Coach.
 Generate an in-depth, personalized interview preparation dossier for this candidate applying for:
@@ -263,13 +282,19 @@ Respond in ONLY valid JSON format with no markdown tags or commentary:
                         }
                     });
                 } else if (user) {
-                    contentParts.push(`CANDIDATE PROFILE:\n- Skills: ${user.profile?.skills?.join(", ") || "None listed"}\n- Bio: ${user.profile?.bio || "None provided"}`);
+                    contentParts.push({ text: `CANDIDATE PROFILE:\n- Skills: ${user.profile?.skills?.join(", ") || "None listed"}\n- Bio: ${user.profile?.bio || "None provided"}` });
                 }
-                contentParts.push(prompt);
+                contentParts.push({ text: prompt });
 
-                const result = await model.generateContent(contentParts);
-                const text = result.response.text().trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-                const parsed = JSON.parse(text);
+                const rawText = await generateWithParts(contentParts);
+                const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
+                let parsed;
+                try {
+                    parsed = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error("Interview Prep JSON parse error:", parseErr.message);
+                    throw parseErr; // bubble to outer catch to use fallback
+                }
                 const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.interviewQuestions || []);
                 const focusSummary = parsed.focusSummary || {
                     overview: `Focus on mastering the core competencies required for ${job.title}, including component architecture, state management, and end-to-end testing.`,
@@ -398,8 +423,7 @@ export const parseResumeForProfile = async (req, res) => {
             });
         }
 
-        const model = getGeminiModel();
-        if (!model) {
+        if (!getGeminiClient()) {
             return res.status(500).json({ message: "AI Model not configured", success: false });
         }
 
@@ -420,18 +444,24 @@ Respond in ONLY valid JSON format:
 }
 `;
 
-        const result = await model.generateContent([
+        const rawText = await generateWithParts([
             {
                 inlineData: {
                     data: base64Pdf,
                     mimeType: "application/pdf"
                 }
             },
-            prompt
+            { text: prompt }
         ]);
 
-        const text = result.response.text().trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-        const parsed = JSON.parse(text);
+        const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseErr) {
+            console.error("Parse Resume JSON error:", parseErr.message, "\nRaw:", text.substring(0, 200));
+            return res.status(500).json({ message: "AI returned an unexpected format. Please try again.", success: false });
+        }
 
         return res.status(200).json({
             success: true,
@@ -461,8 +491,7 @@ export const evaluateMockInterviewAnswer = async (req, res) => {
             return res.status(400).json({ message: "Question and answer are required", success: false });
         }
 
-        const model = getGeminiModel();
-        if (!model) {
+        if (!getGeminiClient()) {
             return res.status(500).json({ message: "AI Model not configured", success: false });
         }
 
@@ -494,9 +523,15 @@ Evaluate the candidate's answer with high precision and provide constructive, en
 }
 `;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-        const parsed = JSON.parse(text);
+        const rawText = await generateText(prompt);
+        const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch (parseErr) {
+            console.error("Mock Interview JSON parse error:", parseErr.message);
+            return res.status(500).json({ message: "AI returned an unexpected format. Please try again.", success: false });
+        }
 
         return res.status(200).json({
             success: true,
@@ -524,7 +559,6 @@ export const tailorResumeForJob = async (req, res) => {
             return res.status(404).json({ message: "Job not found", success: false });
         }
 
-        const model = getGeminiModel();
         const candidateName = user?.fullname || "Candidate";
         const candidateBio = user?.profile?.bio || "Experienced software engineer";
         const candidateSkills = (user?.profile?.skills || ["JavaScript", "React", "Node.js"]).join(", ");
@@ -560,11 +594,17 @@ Generate the response in ONLY valid JSON with no markdown wrapping:
 `;
 
         let tailoredData;
-        if (model) {
-            const result = await model.generateContent(prompt);
-            const text = result.response.text().trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-            tailoredData = JSON.parse(text);
-        } else {
+        const aiText = await generateText(prompt).catch(() => null);
+        if (aiText) {
+            try {
+                const text = aiText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
+                tailoredData = JSON.parse(text);
+            } catch (parseErr) {
+                console.error("Tailor Resume JSON parse error:", parseErr.message);
+                tailoredData = null;
+            }
+        }
+        if (!tailoredData) {
             // Fallback simulation
             tailoredData = {
                 tailoredSummary: `Dedicated and results-oriented professional with deep expertise in ${candidateSkills}, eager to drive impact as a ${job.title} at ${job.company?.name || "your organization"}. Proven track record of delivering high-quality, scalable solutions and collaborating across teams.`,
