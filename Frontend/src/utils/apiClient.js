@@ -39,7 +39,13 @@ apiClient.interceptors.response.use(
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 })
-                    .then(() => apiClient(originalRequest))
+                    .then((token) => {
+                        if (token) {
+                            originalRequest.headers = originalRequest.headers || {};
+                            originalRequest.headers.Authorization = `Bearer ${token}`;
+                        }
+                        return apiClient(originalRequest);
+                    })
                     .catch((err) => Promise.reject(err));
             }
 
@@ -54,7 +60,12 @@ apiClient.interceptors.response.use(
                 );
 
                 if (refreshRes.data?.success) {
-                    processQueue(null, refreshRes.data.accessToken);
+                    const newAccessToken = refreshRes.data.accessToken;
+                    processQueue(null, newAccessToken);
+                    if (newAccessToken) {
+                        originalRequest.headers = originalRequest.headers || {};
+                        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                    }
                     return apiClient(originalRequest);
                 }
             } catch (refreshErr) {

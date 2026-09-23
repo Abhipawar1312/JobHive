@@ -3,6 +3,7 @@ import ApplicantsTable from "./ApplicantsTable";
 import { useParams, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import { APPLICATION_API_END_POINT, AI_API_END_POINT } from "@/utils/constant";
 import { setAllApplicants } from "../redux/applicationSlice";
 import { LoadingBarContext } from "../LoadingBarContext";
@@ -23,9 +24,8 @@ const Applicants = () => {
   const fetchAllApplicants = async () => {
     try {
       if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
-      const res = await axios.get(
-        `${APPLICATION_API_END_POINT}/${params.id}/applicants`,
-        { withCredentials: true }
+      const res = await apiClient.get(
+        `${APPLICATION_API_END_POINT}/${params.id}/applicants`
       );
       dispatch(setAllApplicants(res.data.job));
     } catch (error) {
@@ -55,10 +55,9 @@ const Applicants = () => {
     try {
       setScreeningLoading(true);
       toast.info("Gemini AI is analyzing all applicant resumes against the JD...");
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${AI_API_END_POINT}/screen-applicants/${params.id}`,
-        {},
-        { withCredentials: true }
+        {}
       );
       if (res.data.success) {
         toast.success(res.data.message || "All resumes screened with Gemini AI!");

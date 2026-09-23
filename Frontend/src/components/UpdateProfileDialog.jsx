@@ -13,6 +13,7 @@ import { Button } from "./ui/button";
 import { Loader2, Sparkles, FileText, CheckCircle2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import * as sonner from "sonner";
 import { USER_API_END_POINT, AI_API_END_POINT } from "@/utils/constant";
 import { setUser } from "./redux/authSlice";
@@ -63,9 +64,8 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
         formData.append("file", fileToUse);
       }
 
-      const res = await axios.post(`${AI_API_END_POINT}/parse-resume`, formData, {
+      const res = await apiClient.post(`${AI_API_END_POINT}/parse-resume`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true,
       });
 
       if (res.data.success && res.data.data) {

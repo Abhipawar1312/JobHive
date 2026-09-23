@@ -14,7 +14,7 @@ const pdf = require("pdf-parse");
 
 dotenv.config();
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash"];
 
 const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -22,26 +22,58 @@ const getGeminiClient = () => {
     return new GoogleGenAI({ apiKey });
 };
 
-// Wrapper: generate text content (string prompt)
+// Robust helper to extract & parse JSON from AI response
+export const safeExtractJson = (text) => {
+    if (!text) return null;
+    try {
+        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, "").replace(/```/gi, "").trim();
+        return JSON.parse(cleaned);
+    } catch (e) {
+        return null;
+    }
+};
+
+// Wrapper: generate text content (string prompt) with model fallback
 const generateText = async (prompt) => {
     const ai = getGeminiClient();
     if (!ai) return null;
-    const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt
-    });
-    return response.text;
+    let lastError = null;
+    for (const model of GEMINI_MODELS) {
+        try {
+            const response = await ai.models.generateContent({
+                model,
+                contents: prompt
+            });
+            if (response && response.text) return response.text;
+        } catch (err) {
+            console.warn(`[Gemini Text] Model ${model} failed (${err.message}). Trying fallback model...`);
+            lastError = err;
+        }
+    }
+    console.error("All Gemini models failed for generateText:", lastError?.message);
+    return null;
 };
 
-// Wrapper: generate content with multimodal parts (PDF + text)
+// Wrapper: generate content with multimodal parts (PDF + text) with model fallback
 const generateWithParts = async (parts) => {
     const ai = getGeminiClient();
     if (!ai) return null;
-    const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: parts
-    });
-    return response.text;
+    let lastError = null;
+    for (const model of GEMINI_MODELS) {
+        try {
+            const response = await ai.models.generateContent({
+                model,
+                contents: parts
+            });
+            if (response && response.text) return response.text;
+        } catch (err) {
+            console.warn(`[Gemini Multimodal] Model ${model} failed (${err.message}). Trying fallback model...`);
+            lastError = err;
+        }
+    }
+    console.error("All Gemini models failed for generateWithParts:", lastError?.message);
+    return null;
 };
 
 // 1. AI Resume & Job Matcher (ATS Score)
@@ -205,7 +237,7 @@ export const generateInterviewQuestions = async (req, res) => {
         let base64Pdf = null;
         let isResumeScanned = false;
 
-        const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1];
+        const token = req.cookies?.accessToken || req.cookies?.token || req.headers?.authorization?.split(" ")[1];
         if (token) {
             try {
                 const decode = jwt.verify(token, process.env.SECRET_KEY);
@@ -287,13 +319,11 @@ Respond in ONLY valid JSON format with no markdown tags or commentary:
                 contentParts.push({ text: prompt });
 
                 const rawText = await generateWithParts(contentParts);
-                const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-                let parsed;
-                try {
-                    parsed = JSON.parse(text);
-                } catch (parseErr) {
-                    console.error("Interview Prep JSON parse error:", parseErr.message);
-                    throw parseErr; // bubble to outer catch to use fallback
+                if (!rawText) throw new Error("No response from AI model");
+                const parsed = safeExtractJson(rawText);
+                if (!parsed) {
+                    console.error("Interview Prep JSON parse error on raw text:", rawText.substring(0, 200));
+                    throw new Error("Could not parse AI response as JSON");
                 }
                 const questions = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.interviewQuestions || []);
                 const focusSummary = parsed.focusSummary || {
@@ -454,12 +484,13 @@ Respond in ONLY valid JSON format:
             { text: prompt }
         ]);
 
-        const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-        let parsed;
-        try {
-            parsed = JSON.parse(text);
-        } catch (parseErr) {
-            console.error("Parse Resume JSON error:", parseErr.message, "\nRaw:", text.substring(0, 200));
+        if (!rawText) {
+            return res.status(500).json({ message: "AI service temporarily unavailable. Please try again.", success: false });
+        }
+
+        const parsed = safeExtractJson(rawText);
+        if (!parsed) {
+            console.error("Parse Resume JSON error on raw:", rawText.substring(0, 200));
             return res.status(500).json({ message: "AI returned an unexpected format. Please try again.", success: false });
         }
 
@@ -524,12 +555,13 @@ Evaluate the candidate's answer with high precision and provide constructive, en
 `;
 
         const rawText = await generateText(prompt);
-        const text = rawText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-        let parsed;
-        try {
-            parsed = JSON.parse(text);
-        } catch (parseErr) {
-            console.error("Mock Interview JSON parse error:", parseErr.message);
+        if (!rawText) {
+            return res.status(500).json({ message: "AI service temporarily unavailable. Please try again.", success: false });
+        }
+
+        const parsed = safeExtractJson(rawText);
+        if (!parsed) {
+            console.error("Mock Interview JSON parse error on raw:", rawText.substring(0, 200));
             return res.status(500).json({ message: "AI returned an unexpected format. Please try again.", success: false });
         }
 
@@ -593,15 +625,12 @@ Generate the response in ONLY valid JSON with no markdown wrapping:
 }
 `;
 
-        let tailoredData;
+        let tailoredData = null;
         const aiText = await generateText(prompt).catch(() => null);
         if (aiText) {
-            try {
-                const text = aiText.trim().replace(/```json/gi, "").replace(/```/gi, "").trim();
-                tailoredData = JSON.parse(text);
-            } catch (parseErr) {
-                console.error("Tailor Resume JSON parse error:", parseErr.message);
-                tailoredData = null;
+            tailoredData = safeExtractJson(aiText);
+            if (!tailoredData) {
+                console.error("Tailor Resume JSON parse error on raw:", aiText.substring(0, 200));
             }
         }
         if (!tailoredData) {

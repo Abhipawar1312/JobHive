@@ -4,6 +4,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useSelector } from "react-redux";
 import axios from "axios";
+import apiClient from "@/utils/apiClient";
 import { AI_API_END_POINT, JOB_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
@@ -67,15 +68,14 @@ const PostJobs = () => {
 
     try {
       setIsAiGenerating(true);
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${AI_API_END_POINT}/generate-jd`,
         {
           title,
           companyName: selectedCompany?.name,
           experience: watch("experience"),
           skills: watch("requirements"),
-        },
-        { withCredentials: true }
+        }
       );
 
       if (res.data.success) {
@@ -84,7 +84,8 @@ const PostJobs = () => {
         toast.success("Job description generated with AI!");
       }
     } catch (error) {
-      toast.error("Failed to generate with AI.");
+      console.error("AI JD Gen Error:", error);
+      toast.error(error.response?.data?.message || "Failed to generate with AI.");
     } finally {
       setIsAiGenerating(false);
     }

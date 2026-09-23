@@ -3,12 +3,34 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash"];
 
 const getGeminiClient = () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
     return new GoogleGenAI({ apiKey });
+};
+
+/**
+ * Helper to call Gemini generateContent with automatic model fallback
+ */
+const generateContentWithFallback = async (client, contents) => {
+    let lastError = null;
+    for (const model of GEMINI_MODELS) {
+        try {
+            const res = await client.models.generateContent({
+                model,
+                contents
+            });
+            if (res && res.text) {
+                return res.text;
+            }
+        } catch (err) {
+            console.warn(`[Gemini ATS] Model ${model} failed (${err.message}). Trying fallback model...`);
+            lastError = err;
+        }
+    }
+    throw lastError || new Error("All Gemini models failed to generate content.");
 };
 
 /**
@@ -81,26 +103,27 @@ Respond with ONLY valid JSON with no markdown code fences:
 
         let rawText;
         if (base64Pdf) {
-            rawText = await client.models.generateContent({
-                model: GEMINI_MODEL,
-                contents: [
-                    {
-                        inlineData: {
-                            data: base64Pdf,
-                            mimeType: "application/pdf"
-                        }
-                    },
-                    { text: prompt }
-                ]
-            }).then(r => r.text);
+            rawText = await generateContentWithFallback(client, [
+                {
+                    inlineData: {
+                        data: base64Pdf,
+                        mimeType: "application/pdf"
+                    }
+                },
+                { text: prompt }
+            ]);
         } else {
-            rawText = await client.models.generateContent({
-                model: GEMINI_MODEL,
-                contents: `CANDIDATE PROFILE:\n- Skills: ${candidateSkills.join(", ") || "None listed"}\n- Bio: ${candidateBio || "None provided"}\n\n${prompt}`
-            }).then(r => r.text);
+            rawText = await generateContentWithFallback(
+                client,
+                `CANDIDATE PROFILE:\n- Skills: ${candidateSkills.join(", ") || "None listed"}\n- Bio: ${candidateBio || "None provided"}\n\n${prompt}`
+            );
         }
+
+        if (!rawText) return null;
+
         const responseText = rawText.trim();
-        const cleanedJson = responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const cleanedJson = jsonMatch ? jsonMatch[0] : responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
         const parsed = JSON.parse(cleanedJson);
 
         const finalScore = parsed.matchPercentage ?? parsed.atsScore ?? 70;

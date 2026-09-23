@@ -109,10 +109,9 @@ const JobDescription = () => {
 
     try {
       if (loadingBarRef?.current) loadingBarRef.current.continuousStart();
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${APPLICATION_API_END_POINT}/apply/${jobId}`,
-        {},
-        { withCredentials: true }
+        {}
       );
       if (res.data.success) {
         setIsApplied(true);
@@ -145,16 +144,16 @@ const JobDescription = () => {
 
     try {
       setAtsLoading(true);
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${AI_API_END_POINT}/match-resume`,
-        { jobId },
-        { withCredentials: true }
+        { jobId }
       );
       if (res.data.success) {
         setAtsResult(res.data.data);
       }
     } catch (error) {
-      toast.error("Failed to analyze ATS match.");
+      console.error("ATS Match Error:", error);
+      toast.error(error.response?.data?.message || "Failed to analyze ATS match.");
     } finally {
       setAtsLoading(false);
     }
@@ -167,16 +166,16 @@ const JobDescription = () => {
 
     try {
       setTailorLoading(true);
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${AI_API_END_POINT}/tailor-resume`,
-        { jobId },
-        { withCredentials: true }
+        { jobId }
       );
       if (res.data.success) {
         setTailorResult(res.data.tailoredData || res.data.data || res.data.tailoredResume || res.data);
       }
     } catch (error) {
-      toast.error("Failed to generate tailored resume.");
+      console.error("Tailor Resume Error:", error);
+      toast.error(error.response?.data?.message || "Failed to generate tailored resume.");
     } finally {
       setTailorLoading(false);
     }
@@ -189,15 +188,15 @@ const JobDescription = () => {
 
     try {
       setPrepLoading(true);
-      const res = await axios.get(
-        `${AI_API_END_POINT}/interview-prep/${jobId}`,
-        { withCredentials: true }
+      const res = await apiClient.get(
+        `${AI_API_END_POINT}/interview-prep/${jobId}`
       );
       if (res.data.success) {
         setPrepResult(res.data);
       }
     } catch (error) {
-      toast.error("Failed to generate interview questions.");
+      console.error("Interview Prep Error:", error);
+      toast.error(error.response?.data?.message || "Failed to generate interview questions.");
     } finally {
       setPrepLoading(false);
     }
@@ -220,14 +219,13 @@ const JobDescription = () => {
     if (!prepResult) {
       try {
         setPrepLoading(true);
-        const res = await axios.get(`${AI_API_END_POINT}/interview-prep/${jobId}`, {
-          withCredentials: true,
-        });
+        const res = await apiClient.get(`${AI_API_END_POINT}/interview-prep/${jobId}`);
         if (res.data.success) {
           setPrepResult(res.data);
         }
       } catch (err) {
-        toast.error("Failed to load interview questions for mock practice.");
+        console.error("Mock Prep Load Error:", err);
+        toast.error(err.response?.data?.message || "Failed to load interview questions for mock practice.");
       } finally {
         setPrepLoading(false);
       }
@@ -304,15 +302,14 @@ const JobDescription = () => {
 
     try {
       setEvaluatingMock(true);
-      const res = await axios.post(
+      const res = await apiClient.post(
         `${AI_API_END_POINT}/evaluate-mock-answer`,
         {
           question: currentQ.question,
           userAnswer: mockUserAnswer,
           jobTitle: singleJob?.title,
           jobRequirements: singleJob?.requirements,
-        },
-        { withCredentials: true }
+        }
       );
 
       if (res.data.success && res.data.feedback) {
